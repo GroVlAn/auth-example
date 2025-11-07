@@ -1,7 +1,6 @@
 package e
 
 import (
-	"encoding/json"
 	"errors"
 	"fmt"
 )
@@ -20,6 +19,12 @@ const (
 	ErrorTypeInternal
 )
 
+type ValidationJSON struct {
+	ErrorType string            `json:"error_type"`
+	Message   string            `json:"message"`
+	Fields    map[string]string `json:"fields,omitempty"`
+}
+
 type ErrWrapper struct {
 	errType ErrorType
 	err     error
@@ -31,11 +36,11 @@ type ErrValidation struct {
 	fields map[string]string
 }
 
-func NewErrValidation() *ErrValidation {
+func NewErrValidation(msg string) *ErrValidation {
 	return &ErrValidation{
 		ErrWrapper: ErrWrapper{
 			errType: ErrorTypeValidation,
-			msg:     "validation error",
+			msg:     msg,
 		},
 		fields: make(map[string]string),
 	}
@@ -46,24 +51,15 @@ func (ev *ErrValidation) AddField(field, reason string) {
 }
 
 func (ev *ErrValidation) Error() string {
-	if len(ev.fields) == 0 {
-		return ev.msg
-	}
-
-	data, _ := json.Marshal(ev.fields)
-	return fmt.Sprintf("%s: %s", ev.msg, string(data))
+	return ev.msg
 }
 
-func (ev *ErrValidation) MarshalJSON() ([]byte, error) {
-	return json.Marshal(struct {
-		ErrorType string            `json:"error_type"`
-		Message   string            `json:"message"`
-		Fields    map[string]string `json:"fields,omitempty"`
-	}{
+func (ev *ErrValidation) Data() ValidationJSON {
+	return ValidationJSON{
 		ErrorType: "validation_error",
 		Message:   ev.msg,
 		Fields:    ev.fields,
-	})
+	}
 }
 
 func (ev *ErrValidation) IsEmpty() bool {

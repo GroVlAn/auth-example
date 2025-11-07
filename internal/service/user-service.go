@@ -109,7 +109,7 @@ func (us *userService) User(ctx context.Context, userReq core.UserRequest) (core
 }
 
 func (us *userService) validateUser(user core.User) *e.ErrValidation {
-	err := e.NewErrValidation()
+	err := e.NewErrValidation("validation user data error")
 
 	if len(user.Username) == 0 {
 		err.AddField("username", "username is empty")

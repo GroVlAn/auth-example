@@ -60,8 +60,10 @@ func (h *HTTPHandler) Handler() *chi.Mux {
 		})
 	})
 
-	r.Route(h.basePath, h.userRoute)
-	r.Route(h.basePath, h.authRoute)
+	r.Route(h.basePath, func(r chi.Router) {
+		h.userRoute(r)
+		h.authRoute(r)
+	})
 
 	return r
 }
@@ -116,7 +118,7 @@ func (h *HTTPHandler) handleError(err error) (int, core.Response) {
 }
 
 func (h *HTTPHandler) handleDecodeBody(w http.ResponseWriter, err error) {
-	ev := e.NewErrValidation()
+	ev := e.NewErrValidation("failed read request body")
 
 	switch e := err.(type) {
 	case *json.SyntaxError:
@@ -140,17 +142,7 @@ func (h *HTTPHandler) handleDecodeBody(w http.ResponseWriter, err error) {
 func (h *HTTPHandler) handleValidationError(err error, errValidation *e.ErrValidation) (int, core.Response) {
 	h.l.Error().Err(err).Msg("validation error occurred")
 
-	data, errVal := errValidation.MarshalJSON()
-
-	if errVal != nil {
-		h.l.Error().Err(errVal).Msg("failed to marshal validation error")
-		return http.StatusInternalServerError, core.Response{
-			Error: &core.ErrorResponse{
-				Code: http.StatusInternalServerError,
-				Text: "internal server error",
-			},
-		}
-	}
+	data := errValidation.Data()
 
 	return http.StatusBadRequest, core.Response{
 		Error: &core.ErrorResponse{

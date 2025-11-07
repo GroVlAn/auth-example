@@ -29,7 +29,7 @@ type Settings struct {
 }
 
 type PostgresSettings struct {
-	Host     string `env:"DB_HOST" env-required:"true"`
+	Host     string `yaml:"host" env-required:"true"`
 	Port     string `yaml:"port"`
 	Username string `env:"DB_USERNAME" env-required:"true"`
 	Password string `env:"DB_PASSWORD" env-required:"true"`

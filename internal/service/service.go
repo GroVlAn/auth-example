@@ -24,7 +24,7 @@ type Service struct {
 
 func New(authRepo authRepo, userRepo userRepo, depsAuth DepsAuthService, depsUser DepsUserService) *Service {
 	return &Service{
-		auth: NewAuthService(authRepo, depsAuth),
+		auth: NewAuthService(authRepo, userRepo, depsAuth),
 		user: NewUserService(userRepo, depsUser),
 	}
 }

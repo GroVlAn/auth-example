@@ -34,9 +34,10 @@ type authService struct {
 	DepsAuthService
 }
 
-func NewAuthService(r authRepo, deps DepsAuthService) *authService {
+func NewAuthService(authRepo authRepo, userRepo userRepo, deps DepsAuthService) *authService {
 	return &authService{
-		authRepo:        r,
+		authRepo:        authRepo,
+		userRepo:        userRepo,
 		DepsAuthService: deps,
 	}
 }

@@ -1,0 +1,18 @@
+http:
+  port: '8080'
+  max_header_bytes: 1048576
+  read_header_timeout: 10s
+  write_timeout: 10s
+  base_http_path: '/api/auth'
+
+settings:
+  default_timeout: 15s
+  hash_cost: 12
+
+grpc:
+  port: 8090
+
+db:
+  host: 'user_db'
+  port: 5432
+  ssl_mode: disable
