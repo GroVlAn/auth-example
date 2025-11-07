@@ -18,7 +18,7 @@ const (
 	verifyEndpoint = "/verify"
 	updateEndpoint = "/update"
 
-	refreshCookieName = "tododler-refresh-token"
+	refreshCookieName = "refresh-token"
 )
 
 func (h *HTTPHandler) authRoute(r chi.Router) {

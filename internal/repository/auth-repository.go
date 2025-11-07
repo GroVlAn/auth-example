@@ -10,9 +10,9 @@ import (
 )
 
 const (
-	tableAccessToken        = "tododler_access_token"
-	tableRefreshToken       = "tododler_refresh_token"
-	tableAccessRefreshToken = "tododler_access_refresh_token"
+	tableAccessToken        = "access_token"
+	tableRefreshToken       = "refresh_token"
+	tableAccessRefreshToken = "access_refresh_token"
 )
 
 type authRepository struct {

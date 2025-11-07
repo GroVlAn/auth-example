@@ -10,7 +10,7 @@ import (
 )
 
 const (
-	userTable = "tododler_user"
+	userTable = "user"
 )
 
 type userRepository struct {
