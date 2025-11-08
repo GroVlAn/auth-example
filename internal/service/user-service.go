@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"net/mail"
 	"strings"
+	"time"
 	"unicode"
 
 	"github.com/GroVlAn/auth-example/internal/core"
@@ -46,12 +47,6 @@ func NewUserService(repo userRepo, deps DepsUserService) *userService {
 }
 
 func (us *userService) CreateUser(ctx context.Context, user core.User) error {
-	if user.Email == "" && user.Username == "" {
-		return &e.ErrEmptyFields{
-			Fields: []string{"email", "username"},
-		}
-	}
-
 	if err := us.validateUser(user); err != nil {
 		return err
 	}
@@ -88,14 +83,14 @@ func (us *userService) CreateUser(ctx context.Context, user core.User) error {
 		)
 	}
 
+	user.CreatedAt = time.Now()
+
 	return us.repo.Create(ctx, user)
 }
 
 func (us *userService) User(ctx context.Context, userReq core.UserRequest) (core.User, error) {
-	if userReq.ID == "" && userReq.Username == "" && userReq.Email == "" {
-		return core.User{}, &e.ErrEmptyFields{
-			Fields: []string{"id", "username", "email"},
-		}
+	if err := us.validateUserRequest(userReq); err != nil {
+		return core.User{}, err
 	}
 
 	switch {
@@ -113,21 +108,25 @@ func (us *userService) validateUser(user core.User) *e.ErrValidation {
 
 	if len(user.Username) == 0 {
 		err.AddField("username", "username is empty")
-	}
-
-	if len(user.Username) < minUsernameLen {
+	} else if len(user.Username) < minUsernameLen {
 		err.AddField("username", "username is short")
 	}
 
-	if !us.validateEmail(user.Email) {
+	if len(user.Email) == 0 {
+		err.AddField("email", "email is empty")
+	} else if !us.validateEmail(user.Email) {
 		err.AddField("email", "invalid email")
 	}
 
-	if !us.validatePassword(user.Password) {
+	if len(user.Password) == 0 {
+		err.AddField("password", "password is empty")
+	} else if !us.validatePassword(user.Password) {
 		err.AddField("password", invalidPasswordMsg)
 	}
 
-	if !us.validateFullname(user.FullName) {
+	if len(user.FullName) == 0 {
+		err.AddField("fullname", "fullname is empty")
+	} else if !us.validateFullname(user.FullName) {
 		err.AddField("fullname", "invalid fullname")
 	}
 
@@ -138,6 +137,20 @@ func (us *userService) validateUser(user core.User) *e.ErrValidation {
 	return err
 }
 
+func (us *userService) validateUserRequest(userReq core.UserRequest) *e.ErrValidation {
+	err := e.NewErrValidation("validation user request data error")
+
+	if userReq.ID == "" && userReq.Username == "" && userReq.Email == "" {
+		err.AddField("id|username|email", "at least one field must be provided")
+	}
+
+	if err.IsEmpty() {
+		return nil
+	}
+
+	return err
+
+}
 func (us *userService) validatePassword(password string) bool {
 	if len(password) < minPasswordLen {
 		return false

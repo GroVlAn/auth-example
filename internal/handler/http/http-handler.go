@@ -88,21 +88,10 @@ func (h *HTTPHandler) sendResponse(w http.ResponseWriter, res core.Response, sta
 
 func (h *HTTPHandler) handleError(err error) (int, core.Response) {
 	var errValidation *e.ErrValidation
-	var errEmptyFields *e.ErrEmptyFields
 	var errWrapper *e.ErrWrapper
 
 	if errors.As(err, &errValidation) {
 		return h.handleValidationError(err, errValidation)
-	}
-
-	if errors.As(err, &errEmptyFields) {
-		h.l.Error().Err(err).Msg("empty fields error occurred")
-		return http.StatusBadRequest, core.Response{
-			Error: &core.ErrorResponse{
-				Code: http.StatusBadRequest,
-				Text: errEmptyFields.Error(),
-			},
-		}
 	}
 
 	if errors.As(err, &errWrapper) {

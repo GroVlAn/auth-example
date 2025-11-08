@@ -25,7 +25,7 @@ func NewUserRepository(db *sqlx.DB) *userRepository {
 
 func (ur *userRepository) Create(ctx context.Context, user core.User) error {
 	query := fmt.Sprintf(
-		"INSERT INTO %s (id, username, email, password_hash, full_name, created_at) VALUES (:id, :username, :email, :password_hash, :full_name, :created_at)",
+		"INSERT INTO %s (id, username, email, password_hash, fullname, created_at) VALUES (:id, :username, :email, :password_hash, :fullname, :created_at)",
 		userTable,
 	)
 
@@ -40,7 +40,7 @@ func (ur *userRepository) Create(ctx context.Context, user core.User) error {
 }
 
 func (ur *userRepository) GetByEmail(ctx context.Context, email string) (core.User, error) {
-	query := fmt.Sprintf("SELECT id, username, email, password_hash, full_name, created_at FROM %s WHERE email = $1", userTable)
+	query := fmt.Sprintf("SELECT id, username, email, password_hash, fullname, created_at FROM %s WHERE email = $1", userTable)
 
 	var user core.User
 	err := ur.db.GetContext(ctx, &user, query, email)
@@ -55,7 +55,7 @@ func (ur *userRepository) GetByEmail(ctx context.Context, email string) (core.Us
 }
 
 func (ur *userRepository) GetByUsername(ctx context.Context, username string) (core.User, error) {
-	query := fmt.Sprintf("SELECT id, username, email, password_hash, full_name, created_at FROM %s WHERE username = $1", userTable)
+	query := fmt.Sprintf("SELECT id, username, email, password_hash, fullname, created_at FROM %s WHERE username = $1", userTable)
 
 	var user core.User
 	err := ur.db.GetContext(ctx, &user, query, username)
@@ -70,7 +70,7 @@ func (ur *userRepository) GetByUsername(ctx context.Context, username string) (c
 }
 
 func (ur *userRepository) GetByID(ctx context.Context, id string) (core.User, error) {
-	query := fmt.Sprintf("SELECT id, username, email, password_hash, full_name, created_at FROM %s WHERE id = $1", userTable)
+	query := fmt.Sprintf("SELECT id, username, email, password_hash, fullname, created_at FROM %s WHERE id = $1", userTable)
 
 	var user core.User
 	err := ur.db.GetContext(ctx, &user, query, id)

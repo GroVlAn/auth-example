@@ -4,7 +4,7 @@ CREATE TABLE auth_user
     email text NOT NULL UNIQUE,
     username VARCHAR(255) NOT NULL UNIQUE,
     password_hash TEXT NOT NULL,
-    full_name TEXT NOT NULL,
+    fullname TEXT NOT NULL,
     created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP
 );
 
