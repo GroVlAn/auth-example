@@ -14,7 +14,7 @@ type User struct {
 	Email        string    `json:"email" db:"email" valid:"require"`
 	Password     string    `json:"password" db:"-" valid:"require"`
 	PasswordHash string    `json:"-" db:"password_hash"`
-	FullName     string    `json:"fullname" db:"fullname" valid:"require"`
+	Fullname     string    `json:"fullname" db:"fullname" valid:"require"`
 	CreatedAt    time.Time `json:"create_at" db:"created_at"`
 }
 

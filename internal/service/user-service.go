@@ -107,26 +107,26 @@ func (us *userService) validateUser(user core.User) *e.ErrValidation {
 	err := e.NewErrValidation("validation user data error")
 
 	if len(user.Username) == 0 {
-		err.AddField("username", "username is empty")
+		err.AddField("username", "username is required")
 	} else if len(user.Username) < minUsernameLen {
 		err.AddField("username", "username is short")
 	}
 
 	if len(user.Email) == 0 {
-		err.AddField("email", "email is empty")
+		err.AddField("email", "email is required")
 	} else if !us.validateEmail(user.Email) {
 		err.AddField("email", "invalid email")
 	}
 
 	if len(user.Password) == 0 {
-		err.AddField("password", "password is empty")
+		err.AddField("password", "password is required")
 	} else if !us.validatePassword(user.Password) {
 		err.AddField("password", invalidPasswordMsg)
 	}
 
-	if len(user.FullName) == 0 {
-		err.AddField("fullname", "fullname is empty")
-	} else if !us.validateFullname(user.FullName) {
+	if len(user.Fullname) == 0 {
+		err.AddField("fullname", "fullname is required")
+	} else if !us.validateFullname(user.Fullname) {
 		err.AddField("fullname", "invalid fullname")
 	}
 

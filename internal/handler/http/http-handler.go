@@ -32,20 +32,18 @@ type Deps struct {
 }
 
 type HTTPHandler struct {
-	l              zerolog.Logger
-	userService    userService
-	authService    authenticator
-	basePath       string
-	defaultTimeout time.Duration
+	l           zerolog.Logger
+	userService userService
+	authService authenticator
+	Deps
 }
 
 func New(l zerolog.Logger, userService userService, authService authenticator, deps Deps) *HTTPHandler {
 	return &HTTPHandler{
-		l:              l,
-		userService:    userService,
-		authService:    authService,
-		basePath:       deps.BasePath,
-		defaultTimeout: deps.DefaultTimeout,
+		l:           l,
+		userService: userService,
+		authService: authService,
+		Deps:        deps,
 	}
 }
 
@@ -60,7 +58,7 @@ func (h *HTTPHandler) Handler() *chi.Mux {
 		})
 	})
 
-	r.Route(h.basePath, func(r chi.Router) {
+	r.Route(h.BasePath, func(r chi.Router) {
 		h.userRoute(r)
 		h.authRoute(r)
 	})

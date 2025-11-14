@@ -13,6 +13,6 @@ grpc:
   port: 8099
 
 db:
-  host: 'user_db'
+  host: localhost
   port: 5432
   ssl_mode: disable

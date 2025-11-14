@@ -11,9 +11,11 @@ import (
 
 	"github.com/GroVlAn/auth-example/internal/config"
 	"github.com/GroVlAn/auth-example/internal/database"
+	grpcHandler "github.com/GroVlAn/auth-example/internal/handler/grpc"
 	httpHandler "github.com/GroVlAn/auth-example/internal/handler/http"
 	"github.com/GroVlAn/auth-example/internal/repository"
-	"github.com/GroVlAn/auth-example/internal/server"
+	grpcServer "github.com/GroVlAn/auth-example/internal/server/grpc-server"
+	httpServer "github.com/GroVlAn/auth-example/internal/server/http-server"
 	"github.com/GroVlAn/auth-example/internal/service"
 	_ "github.com/lib/pq"
 	"github.com/rs/zerolog"
@@ -78,10 +80,13 @@ func main() {
 		BasePath:       cfg.HTTP.BaseHTTPPath,
 		DefaultTimeout: cfg.Settings.DefaultTimeout,
 	})
+	gh := grpcHandler.New(l, s.User(), s.Auth(), grpcHandler.Deps{
+		DefaultTimeout: cfg.Settings.DefaultTimeout,
+	})
 
-	server := server.New(
+	hServer := httpServer.New(
 		h.Handler(),
-		server.Settings{
+		httpServer.Settings{
 			Port:              cfg.HTTP.Port,
 			MaxHeaderBytes:    cfg.HTTP.MaxHeaderBytes,
 			ReadHeaderTimeout: time.Duration(cfg.HTTP.ReadHeaderTimeout) * time.Second,
@@ -89,19 +94,35 @@ func main() {
 		},
 	)
 
+	gServer := grpcServer.New(
+		grpcServer.Deps{
+			UserService: gh,
+			AuthService: gh,
+		},
+	)
+
 	go func() {
-		if err := server.Strart(); err != nil && err != http.ErrServerClosed {
+		if err := hServer.ListenAndServe(); err != nil && err != http.ErrServerClosed {
 			l.Fatal().Err(err).Msg("Failed to start server")
+		}
+	}()
+
+	go func() {
+		l.Info().Msgf("grpc server started on port: %s", cfg.GRPC.Port)
+
+		if err := gServer.ListenAndServe(cfg.GRPC.Port); err != nil {
+			l.Fatal().Err(err).Msg("failed to start grpc server")
 		}
 	}()
 
 	l.Info().Msgf("server start on port: %s load time: %v", cfg.HTTP.Port, time.Since(timeStart))
 
 	<-ctx.Done()
-	err = server.Shutdown(ctx)
+	err = hServer.Shutdown(ctx)
 	if err != nil {
 		l.Fatal().Err(err).Msg("failed to shutdown server")
 	} else {
 		l.Info().Msg("server shutdown gracefully")
 	}
+	gServer.Stop()
 }

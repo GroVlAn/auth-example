@@ -1,4 +1,4 @@
-package server
+package http_server
 
 import (
 	"context"
@@ -29,7 +29,7 @@ func New(handler http.Handler, setting Settings) *Server {
 	}
 }
 
-func (s *Server) Strart() error {
+func (s *Server) ListenAndServe() error {
 	return s.httpServer.ListenAndServe()
 }
 

@@ -1,0 +1,58 @@
+package grpc_handler
+
+import (
+	"context"
+
+	"github.com/GroVlAn/auth-example/api/user"
+	"github.com/GroVlAn/auth-example/internal/core"
+	"google.golang.org/protobuf/types/known/timestamppb"
+)
+
+func (h *GRPCHandler) CreateUser(ctx context.Context, req *user.User) (*user.Success, error) {
+	u := core.User{
+		ID:       req.ID,
+		Username: req.Username,
+		Email:    req.Email,
+		Password: req.Password,
+		Fullname: req.Fullname,
+	}
+
+	ctx, cancel := context.WithTimeout(ctx, h.DefaultTimeout)
+	defer cancel()
+
+	err := h.userService.CreateUser(ctx, u)
+	if err != nil {
+		h.l.Error().Err(err).Msg("failed to get user")
+		return nil, h.handleError(err)
+	}
+
+	return &user.Success{
+		Success: true,
+	}, nil
+}
+
+func (h *GRPCHandler) GetUser(ctx context.Context, req *user.UserRequest) (*user.User, error) {
+	userReq := core.UserRequest{
+		ID:       req.ID,
+		Username: req.Username,
+		Email:    req.Email,
+	}
+
+	ctx, cancel := context.WithTimeout(ctx, h.DefaultTimeout)
+	defer cancel()
+
+	u, err := h.userService.User(ctx, userReq)
+	if err != nil {
+		h.l.Error().Err(err).Msg("failed to get user")
+		return nil, err
+	}
+
+	return &user.User{
+		ID:           u.ID,
+		Username:     u.Username,
+		Email:        u.Email,
+		PasswordHash: u.Password,
+		Fullname:     u.Fullname,
+		CreatedAt:    timestamppb.New(u.CreatedAt),
+	}, nil
+}

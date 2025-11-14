@@ -1,0 +1,65 @@
+package grpc_handler
+
+import (
+	"context"
+
+	"github.com/GroVlAn/auth-example/api/auth"
+	"github.com/GroVlAn/auth-example/internal/core"
+)
+
+func (h *GRPCHandler) Login(ctx context.Context, req *auth.AuthUser) (*auth.Tokens, error) {
+	authUser := core.AuthUser{
+		Username: req.Username,
+		Email:    req.Email,
+		Password: req.Password,
+	}
+
+	ctx, cancel := context.WithTimeout(ctx, h.DefaultTimeout)
+	defer cancel()
+
+	userAgent := "grpc-client"
+
+	rfToken, accToken, err := h.authService.Authenticate(ctx, authUser, userAgent)
+	if err != nil {
+		h.l.Error().Err(err).Msg("failed to authenticate user")
+		return nil, err
+	}
+
+	tokens := &auth.Tokens{
+		RefreshToken: &auth.RefreshToken{
+			Token: rfToken.Token,
+		},
+		AccessToken: &auth.AccessToken{
+			Token: accToken.Token,
+		},
+	}
+
+	return tokens, nil
+}
+func (h *GRPCHandler) VerifyAccessToken(ctx context.Context, req *auth.Tokens) (*auth.Success, error) {
+	ctx, cancel := context.WithTimeout(ctx, h.DefaultTimeout)
+	defer cancel()
+
+	if err := h.authService.VerifyAccessToken(ctx, req.AccessToken.Token); err != nil {
+		h.l.Error().Err(err).Msg("failed to verify access token")
+		return nil, err
+	}
+
+	return &auth.Success{
+		Success: true,
+	}, nil
+}
+func (h *GRPCHandler) UpdateAccessToken(ctx context.Context, req *auth.RefreshToken) (*auth.AccessToken, error) {
+	ctx, cancel := context.WithTimeout(ctx, h.DefaultTimeout)
+	defer cancel()
+
+	newAccToken, err := h.authService.UpdateAccessToken(ctx, req.Token)
+	if err != nil {
+		h.l.Error().Err(err).Msg("failed to update access token")
+		return nil, err
+	}
+
+	return &auth.AccessToken{
+		Token: newAccToken.Token,
+	}, nil
+}

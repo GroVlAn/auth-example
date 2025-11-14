@@ -4,6 +4,7 @@ import (
 	"context"
 	"encoding/json"
 	"errors"
+	"fmt"
 	"io"
 	"net/http"
 	"strings"
@@ -42,7 +43,7 @@ func (h *HTTPHandler) auth(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	ctx, cancel := context.WithTimeout(r.Context(), h.defaultTimeout)
+	ctx, cancel := context.WithTimeout(r.Context(), h.DefaultTimeout)
 	defer cancel()
 
 	userAgent := r.Header.Get("User-Agent")
@@ -69,8 +70,6 @@ func (h *HTTPHandler) auth(w http.ResponseWriter, r *http.Request) {
 	res := core.Response{}
 	res.Data = map[string]interface{}{
 		"access_token": accToken.Token,
-		"exp":          accToken.EndTTL.Unix(),
-		"user_id":      accToken.UserID,
 	}
 
 	h.sendResponse(w, res, http.StatusOK)
@@ -85,7 +84,7 @@ func (h *HTTPHandler) verifyAccessToken(w http.ResponseWriter, r *http.Request) 
 		return
 	}
 
-	ctx, cancel := context.WithTimeout(r.Context(), h.defaultTimeout)
+	ctx, cancel := context.WithTimeout(r.Context(), h.DefaultTimeout)
 	defer cancel()
 
 	if err := h.authService.VerifyAccessToken(ctx, accToken); err != nil {
@@ -124,7 +123,7 @@ func (h *HTTPHandler) updateAccessToken(w http.ResponseWriter, r *http.Request) 
 
 	rfToken := cookie.Value
 
-	ctx, cancel := context.WithTimeout(r.Context(), h.defaultTimeout)
+	ctx, cancel := context.WithTimeout(r.Context(), h.DefaultTimeout)
 	defer cancel()
 
 	newAccToken, err := h.authService.UpdateAccessToken(ctx, rfToken)
@@ -152,6 +151,8 @@ func (h *HTTPHandler) extractBearerToken(r *http.Request) (string, error) {
 			"authorization header is missing",
 		)
 	}
+
+	fmt.Println("authHeader: ", authHeader)
 
 	// Разделяем заголовок по пробелу
 	parts := strings.Split(authHeader, " ")

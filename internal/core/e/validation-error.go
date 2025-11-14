@@ -2,7 +2,7 @@ package e
 
 type ErrValidation struct {
 	ErrWrapper
-	fields map[string]string
+	fields [][2]string
 }
 
 func NewErrValidation(msg string) *ErrValidation {
@@ -11,12 +11,12 @@ func NewErrValidation(msg string) *ErrValidation {
 			errType: ErrorTypeValidation,
 			msg:     msg,
 		},
-		fields: make(map[string]string),
+		fields: make([][2]string, 0),
 	}
 }
 
 func (ev *ErrValidation) AddField(field, reason string) {
-	ev.fields[field] = reason
+	ev.fields = append(ev.fields, [2]string{field, reason})
 }
 
 func (ev *ErrValidation) Error() string {
@@ -29,6 +29,14 @@ func (ev *ErrValidation) Data() ValidationJSON {
 		Message:   ev.msg,
 		Fields:    ev.fields,
 	}
+}
+
+func (ev *ErrValidation) FirstError() (field, reason string, ok bool) {
+	if len(ev.fields) == 0 {
+		return "", "", false
+	}
+
+	return ev.fields[0][0], ev.fields[0][1], true
 }
 
 func (ev *ErrValidation) IsEmpty() bool {

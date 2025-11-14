@@ -204,6 +204,8 @@ func (as *authService) verifyPassword(password, passwordHash string) error {
 }
 
 func (as *authService) checkExistAccessToken(ctx context.Context, token string) error {
+	fmt.Println("accToken: ", token)
+
 	if _, err := as.authRepo.AccessToken(ctx, token); err != nil {
 		return e.NewErrUnauthorized(
 			fmt.Errorf("checking exist access token: %w", err),

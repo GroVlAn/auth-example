@@ -37,7 +37,7 @@ func (h *HTTPHandler) register(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	ctx, cancel := context.WithTimeout(r.Context(), h.defaultTimeout)
+	ctx, cancel := context.WithTimeout(r.Context(), h.DefaultTimeout)
 	defer cancel()
 
 	err = h.userService.CreateUser(ctx, user)
@@ -67,7 +67,7 @@ func (h *HTTPHandler) user(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	ctx, cancel := context.WithTimeout(r.Context(), h.defaultTimeout)
+	ctx, cancel := context.WithTimeout(r.Context(), h.DefaultTimeout)
 	defer cancel()
 
 	user, err := h.userService.User(ctx, userReq)

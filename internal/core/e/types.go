@@ -1,5 +1,7 @@
 package e
 
+type ErrorType int
+
 const (
 	ErrorTypeNotFound ErrorType = iota
 	ErrorTypeConflict
@@ -9,7 +11,7 @@ const (
 )
 
 type ValidationJSON struct {
-	ErrorType string            `json:"error_type"`
-	Message   string            `json:"message"`
-	Fields    map[string]string `json:"fields,omitempty"`
+	ErrorType string      `json:"error_type"`
+	Message   string      `json:"message"`
+	Fields    [][2]string `json:"fields,omitempty"`
 }
