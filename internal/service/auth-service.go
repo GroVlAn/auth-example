@@ -8,6 +8,7 @@ import (
 
 	"github.com/GroVlAn/auth-example/internal/core"
 	"github.com/GroVlAn/auth-example/internal/core/e"
+	jwttoken "github.com/GroVlAn/auth-example/pkg/jwt-token"
 	"github.com/golang-jwt/jwt"
 	"github.com/google/uuid"
 	"golang.org/x/crypto/bcrypt"
@@ -114,7 +115,7 @@ func (as *authService) VerifyAccessToken(ctx context.Context, accToken string) e
 		)
 	}
 
-	tokenDetails, err := as.parseToken(accToken)
+	tokenDetails, err := jwttoken.ParseToken(as.SecretKey, accToken)
 	if err != nil {
 		return err
 	}
@@ -262,8 +263,8 @@ func (as *authService) parseToken(token string) (jwt.MapClaims, error) {
 	return tokenDetails, nil
 }
 
-func (as *authService) checkExpiredAccessToken(ctx context.Context, token string, tokenDetails jwt.MapClaims) error {
-	exp := time.Unix(int64(tokenDetails["exp"].(float64)), 0)
+func (as *authService) checkExpiredAccessToken(ctx context.Context, token string, tokenDetails jwttoken.JWTDetails) error {
+	exp := time.Unix(int64(tokenDetails.EXP), 0)
 	now := time.Now()
 
 	if now.After(exp) {
