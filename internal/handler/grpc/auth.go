@@ -19,8 +19,7 @@ func (h *GRPCHandler) Login(ctx context.Context, req *auth.AuthUser) (*auth.Toke
 
 	rfToken, accToken, err := h.authService.Authenticate(ctx, authUser)
 	if err != nil {
-		h.l.Error().Err(err).Msg("failed to authenticate user")
-		return nil, err
+		return nil, h.handleError(err)
 	}
 
 	tokens := &auth.Tokens{
@@ -40,8 +39,7 @@ func (h *GRPCHandler) VerifyAccessToken(ctx context.Context, req *auth.Tokens) (
 	defer cancel()
 
 	if err := h.authService.VerifyAccessToken(ctx, req.AccessToken.Token); err != nil {
-		h.l.Error().Err(err).Msg("failed to verify access token")
-		return nil, err
+		return nil, h.handleError(err)
 	}
 
 	return &auth.Success{
@@ -55,8 +53,7 @@ func (h *GRPCHandler) UpdateAccessToken(ctx context.Context, req *auth.RefreshTo
 
 	newAccToken, err := h.authService.UpdateAccessToken(ctx, req.Token)
 	if err != nil {
-		h.l.Error().Err(err).Msg("failed to update access token")
-		return nil, err
+		return nil, h.handleError(err)
 	}
 
 	return &auth.AccessToken{
@@ -70,8 +67,7 @@ func (h *GRPCHandler) Logout(ctx context.Context, req *auth.Tokens) (*auth.Succe
 
 	err := h.authService.Logout(ctx, req.RefreshToken.Token, req.AccessToken.Token)
 	if err != nil {
-		h.l.Error().Err(err).Msg("failed revoke current tokens")
-		return nil, err
+		return nil, h.handleError(err)
 	}
 
 	return &auth.Success{
@@ -85,8 +81,7 @@ func (h *GRPCHandler) LogoutAllDevices(ctx context.Context, req *auth.AccessToke
 
 	err := h.authService.LogoutAllDevices(ctx, req.Token)
 	if err != nil {
-		h.l.Error().Err(err).Msg("failed revoke all tokens")
-		return nil, err
+		return nil, h.handleError(err)
 	}
 
 	return &auth.Success{

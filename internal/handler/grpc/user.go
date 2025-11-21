@@ -22,7 +22,6 @@ func (h *GRPCHandler) CreateUser(ctx context.Context, req *user.User) (*user.Suc
 
 	err := h.userService.CreateUser(ctx, u)
 	if err != nil {
-		h.l.Error().Err(err).Msg("failed to get user")
 		return nil, h.handleError(err)
 	}
 
@@ -43,8 +42,7 @@ func (h *GRPCHandler) GetUser(ctx context.Context, req *user.UserRequest) (*user
 
 	u, err := h.userService.User(ctx, userReq)
 	if err != nil {
-		h.l.Error().Err(err).Msg("failed to get user")
-		return nil, err
+		return nil, h.handleError(err)
 	}
 
 	return &user.User{

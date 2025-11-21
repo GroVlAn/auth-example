@@ -57,6 +57,8 @@ func (h *GRPCHandler) handleError(err error) error {
 		field, reason, ok := errValidation.FirstError()
 
 		if ok {
+			h.l.Error().Err(errWrapper.Unwrap()).Msgf("validation error occurred: field: %s, reason: %s", field, reason)
+
 			return status.Errorf(codes.InvalidArgument, "field: %s, error: %s", field, reason)
 		}
 	}
