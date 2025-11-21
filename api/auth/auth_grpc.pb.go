@@ -22,6 +22,8 @@ const (
 	AuthService_Login_FullMethodName             = "/auth.AuthService/Login"
 	AuthService_VerifyAccessToken_FullMethodName = "/auth.AuthService/VerifyAccessToken"
 	AuthService_UpdateAccessToken_FullMethodName = "/auth.AuthService/UpdateAccessToken"
+	AuthService_Logout_FullMethodName            = "/auth.AuthService/Logout"
+	AuthService_LogoutAllDevices_FullMethodName  = "/auth.AuthService/LogoutAllDevices"
 )
 
 // AuthServiceClient is the client API for AuthService service.
@@ -31,6 +33,8 @@ type AuthServiceClient interface {
 	Login(ctx context.Context, in *AuthUser, opts ...grpc.CallOption) (*Tokens, error)
 	VerifyAccessToken(ctx context.Context, in *Tokens, opts ...grpc.CallOption) (*Success, error)
 	UpdateAccessToken(ctx context.Context, in *RefreshToken, opts ...grpc.CallOption) (*AccessToken, error)
+	Logout(ctx context.Context, in *Tokens, opts ...grpc.CallOption) (*Success, error)
+	LogoutAllDevices(ctx context.Context, in *AccessToken, opts ...grpc.CallOption) (*Success, error)
 }
 
 type authServiceClient struct {
@@ -71,6 +75,26 @@ func (c *authServiceClient) UpdateAccessToken(ctx context.Context, in *RefreshTo
 	return out, nil
 }
 
+func (c *authServiceClient) Logout(ctx context.Context, in *Tokens, opts ...grpc.CallOption) (*Success, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(Success)
+	err := c.cc.Invoke(ctx, AuthService_Logout_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *authServiceClient) LogoutAllDevices(ctx context.Context, in *AccessToken, opts ...grpc.CallOption) (*Success, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(Success)
+	err := c.cc.Invoke(ctx, AuthService_LogoutAllDevices_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
 // AuthServiceServer is the server API for AuthService service.
 // All implementations must embed UnimplementedAuthServiceServer
 // for forward compatibility.
@@ -78,6 +102,8 @@ type AuthServiceServer interface {
 	Login(context.Context, *AuthUser) (*Tokens, error)
 	VerifyAccessToken(context.Context, *Tokens) (*Success, error)
 	UpdateAccessToken(context.Context, *RefreshToken) (*AccessToken, error)
+	Logout(context.Context, *Tokens) (*Success, error)
+	LogoutAllDevices(context.Context, *AccessToken) (*Success, error)
 	mustEmbedUnimplementedAuthServiceServer()
 }
 
@@ -96,6 +122,12 @@ func (UnimplementedAuthServiceServer) VerifyAccessToken(context.Context, *Tokens
 }
 func (UnimplementedAuthServiceServer) UpdateAccessToken(context.Context, *RefreshToken) (*AccessToken, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method UpdateAccessToken not implemented")
+}
+func (UnimplementedAuthServiceServer) Logout(context.Context, *Tokens) (*Success, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method Logout not implemented")
+}
+func (UnimplementedAuthServiceServer) LogoutAllDevices(context.Context, *AccessToken) (*Success, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method LogoutAllDevices not implemented")
 }
 func (UnimplementedAuthServiceServer) mustEmbedUnimplementedAuthServiceServer() {}
 func (UnimplementedAuthServiceServer) testEmbeddedByValue()                     {}
@@ -172,6 +204,42 @@ func _AuthService_UpdateAccessToken_Handler(srv interface{}, ctx context.Context
 	return interceptor(ctx, in, info, handler)
 }
 
+func _AuthService_Logout_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(Tokens)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(AuthServiceServer).Logout(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: AuthService_Logout_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(AuthServiceServer).Logout(ctx, req.(*Tokens))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _AuthService_LogoutAllDevices_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(AccessToken)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(AuthServiceServer).LogoutAllDevices(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: AuthService_LogoutAllDevices_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(AuthServiceServer).LogoutAllDevices(ctx, req.(*AccessToken))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
 // AuthService_ServiceDesc is the grpc.ServiceDesc for AuthService service.
 // It's only intended for direct use with grpc.RegisterService,
 // and not to be introspected or modified (even as a copy)
@@ -190,6 +258,14 @@ var AuthService_ServiceDesc = grpc.ServiceDesc{
 		{
 			MethodName: "UpdateAccessToken",
 			Handler:    _AuthService_UpdateAccessToken_Handler,
+		},
+		{
+			MethodName: "Logout",
+			Handler:    _AuthService_Logout_Handler,
+		},
+		{
+			MethodName: "LogoutAllDevices",
+			Handler:    _AuthService_LogoutAllDevices_Handler,
 		},
 	},
 	Streams:  []grpc.StreamDesc{},

@@ -28,7 +28,7 @@ type AuthRepo interface {
 	DeleteAllAccessTokens(ctx context.Context, userID string) error
 	RefreshToken(ctx context.Context, token string) (core.RefreshToken, error)
 	DeleteRefreshToken(ctx context.Context, token string) error
-	DeleteAllRefreshTokens(ctx context.Context, userID string) error
+	DeleteAllRefreshTokens(ctx context.Context, token string) error
 }
 
 type Repository struct {

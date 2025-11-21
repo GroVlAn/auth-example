@@ -283,11 +283,13 @@ const file_auth_proto_rawDesc = "" +
 	"\faccess_token\x18\x01 \x01(\v2\x11.auth.AccessTokenR\vaccessToken\x127\n" +
 	"\rrefresh_token\x18\x02 \x01(\v2\x12.auth.RefreshTokenR\frefreshToken\"#\n" +
 	"\aSuccess\x12\x18\n" +
-	"\asuccess\x18\x01 \x01(\bR\asuccess2\xa8\x01\n" +
+	"\asuccess\x18\x01 \x01(\bR\asuccess2\x89\x02\n" +
 	"\vAuthService\x12'\n" +
 	"\x05Login\x12\x0e.auth.AuthUser\x1a\f.auth.Tokens\"\x00\x122\n" +
 	"\x11VerifyAccessToken\x12\f.auth.Tokens\x1a\r.auth.Success\"\x00\x12<\n" +
-	"\x11UpdateAccessToken\x12\x12.auth.RefreshToken\x1a\x11.auth.AccessToken\"\x00B\aZ\x05/authb\x06proto3"
+	"\x11UpdateAccessToken\x12\x12.auth.RefreshToken\x1a\x11.auth.AccessToken\"\x00\x12'\n" +
+	"\x06Logout\x12\f.auth.Tokens\x1a\r.auth.Success\"\x00\x126\n" +
+	"\x10LogoutAllDevices\x12\x11.auth.AccessToken\x1a\r.auth.Success\"\x00B\aZ\x05/authb\x06proto3"
 
 var (
 	file_auth_proto_rawDescOnce sync.Once
@@ -315,11 +317,15 @@ var file_auth_proto_depIdxs = []int32{
 	0, // 2: auth.AuthService.Login:input_type -> auth.AuthUser
 	3, // 3: auth.AuthService.VerifyAccessToken:input_type -> auth.Tokens
 	1, // 4: auth.AuthService.UpdateAccessToken:input_type -> auth.RefreshToken
-	3, // 5: auth.AuthService.Login:output_type -> auth.Tokens
-	4, // 6: auth.AuthService.VerifyAccessToken:output_type -> auth.Success
-	2, // 7: auth.AuthService.UpdateAccessToken:output_type -> auth.AccessToken
-	5, // [5:8] is the sub-list for method output_type
-	2, // [2:5] is the sub-list for method input_type
+	3, // 5: auth.AuthService.Logout:input_type -> auth.Tokens
+	2, // 6: auth.AuthService.LogoutAllDevices:input_type -> auth.AccessToken
+	3, // 7: auth.AuthService.Login:output_type -> auth.Tokens
+	4, // 8: auth.AuthService.VerifyAccessToken:output_type -> auth.Success
+	2, // 9: auth.AuthService.UpdateAccessToken:output_type -> auth.AccessToken
+	4, // 10: auth.AuthService.Logout:output_type -> auth.Success
+	4, // 11: auth.AuthService.LogoutAllDevices:output_type -> auth.Success
+	7, // [7:12] is the sub-list for method output_type
+	2, // [2:7] is the sub-list for method input_type
 	2, // [2:2] is the sub-list for extension type_name
 	2, // [2:2] is the sub-list for extension extendee
 	0, // [0:2] is the sub-list for field type_name

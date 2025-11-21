@@ -34,6 +34,7 @@ func (h *GRPCHandler) Login(ctx context.Context, req *auth.AuthUser) (*auth.Toke
 
 	return tokens, nil
 }
+
 func (h *GRPCHandler) VerifyAccessToken(ctx context.Context, req *auth.Tokens) (*auth.Success, error) {
 	ctx, cancel := context.WithTimeout(ctx, h.DefaultTimeout)
 	defer cancel()
@@ -47,6 +48,7 @@ func (h *GRPCHandler) VerifyAccessToken(ctx context.Context, req *auth.Tokens) (
 		Success: true,
 	}, nil
 }
+
 func (h *GRPCHandler) UpdateAccessToken(ctx context.Context, req *auth.RefreshToken) (*auth.AccessToken, error) {
 	ctx, cancel := context.WithTimeout(ctx, h.DefaultTimeout)
 	defer cancel()
@@ -59,5 +61,35 @@ func (h *GRPCHandler) UpdateAccessToken(ctx context.Context, req *auth.RefreshTo
 
 	return &auth.AccessToken{
 		Token: newAccToken.Token,
+	}, nil
+}
+
+func (h *GRPCHandler) Logout(ctx context.Context, req *auth.Tokens) (*auth.Success, error) {
+	ctx, cancel := context.WithTimeout(ctx, h.DefaultTimeout)
+	defer cancel()
+
+	err := h.authService.Logout(ctx, req.RefreshToken.Token, req.AccessToken.Token)
+	if err != nil {
+		h.l.Error().Err(err).Msg("failed revoke current tokens")
+		return nil, err
+	}
+
+	return &auth.Success{
+		Success: true,
+	}, nil
+}
+
+func (h *GRPCHandler) LogoutAllDevices(ctx context.Context, req *auth.AccessToken) (*auth.Success, error) {
+	ctx, cancel := context.WithTimeout(ctx, h.DefaultTimeout)
+	defer cancel()
+
+	err := h.authService.LogoutAllDevices(ctx, req.Token)
+	if err != nil {
+		h.l.Error().Err(err).Msg("failed revoke all tokens")
+		return nil, err
+	}
+
+	return &auth.Success{
+		Success: true,
 	}, nil
 }

@@ -11,7 +11,7 @@ type Authenticator interface {
 	UpdateAccessToken(ctx context.Context, rfToken string) (core.AccessToken, error)
 	VerifyAccessToken(ctx context.Context, accToken string) error
 	Logout(ctx context.Context, refreshToken, accessToken string) error
-	LogoutAllDevices(ctx context.Context, accToken string) error
+	LogoutAllDevices(ctx context.Context, accessToken string) error
 }
 
 type UserService interface {
