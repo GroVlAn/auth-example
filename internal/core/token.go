@@ -11,10 +11,9 @@ type AccessToken struct {
 }
 
 type RefreshToken struct {
-	ID        string    `json:"-" db:"id"`
-	Token     string    `json:"token" db:"token"`
-	StartTTL  time.Time `json:"start_ttl" db:"start_ttl"`
-	EndTTL    time.Time `json:"end_ttl" db:"end_ttl"`
-	UserAgent string    `json:"-" db:"user_agent"`
-	UserID    string    `json:"-" db:"user_id"`
+	ID       string    `json:"-" db:"id"`
+	Token    string    `json:"token" db:"token"`
+	StartTTL time.Time `json:"start_ttl" db:"start_ttl"`
+	EndTTL   time.Time `json:"end_ttl" db:"end_ttl"`
+	UserID   string    `json:"-" db:"user_id"`
 }

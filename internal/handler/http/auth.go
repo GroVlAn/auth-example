@@ -18,6 +18,7 @@ const (
 	authEndpoint   = "/auth"
 	verifyEndpoint = "/verify"
 	updateEndpoint = "/update"
+	logout         = "/logout"
 
 	refreshCookieName = "refresh-token"
 )
@@ -26,6 +27,7 @@ func (h *HTTPHandler) authRoute(r chi.Router) {
 	r.Post(authEndpoint, h.auth)
 	r.Post(verifyEndpoint, h.verifyAccessToken)
 	r.Patch(updateEndpoint, h.updateAccessToken)
+	r.Delete(logout, h.logout)
 }
 
 func (h *HTTPHandler) auth(w http.ResponseWriter, r *http.Request) {
@@ -140,6 +142,82 @@ func (h *HTTPHandler) updateAccessToken(w http.ResponseWriter, r *http.Request) 
 		"exp":          newAccToken.EndTTL.Unix(),
 		"user_id":      newAccToken.UserID,
 	}
+	h.sendResponse(w, res, http.StatusOK)
+}
+
+func (h *HTTPHandler) logout(w http.ResponseWriter, r *http.Request) {
+	cookie, err := r.Cookie(refreshCookieName)
+	if err != nil {
+		if err == http.ErrNoCookie {
+			status, res := h.handleError(e.NewErrUnauthorized(
+				errors.New("authorization header is missing"),
+				"authorization header is missing",
+			))
+
+			h.sendResponse(w, res, status)
+			return
+		}
+
+		status, res := h.handleError(err)
+
+		h.sendResponse(w, res, status)
+		return
+	}
+
+	accToken, err := h.extractBearerToken(r)
+	if err != nil {
+		status, res := h.handleError(err)
+
+		h.sendResponse(w, res, status)
+		return
+	}
+
+	action := chi.URLParam(r, "action")
+
+	ctx, cancel := context.WithTimeout(r.Context(), h.DefaultTimeout)
+	defer cancel()
+
+	switch action {
+	case "all":
+		h.logoutAllDevices(ctx, w, accToken)
+	case "current":
+		h.logoutCurrentDevice(ctx, w, cookie.Value, accToken)
+	default:
+		h.logoutCurrentDevice(ctx, w, cookie.Value, accToken)
+	}
+}
+
+func (h *HTTPHandler) logoutAllDevices(ctx context.Context, w http.ResponseWriter, accToken string) {
+	err := h.authService.LogoutAllDevices(ctx, accToken)
+	if err != nil {
+		status, res := h.handleError(err)
+
+		h.sendResponse(w, res, status)
+		return
+	}
+
+	res := core.Response{}
+	res.Response = map[string]interface{}{
+		"message": "access tokens for all devices have been revoked",
+	}
+
+	h.sendResponse(w, res, http.StatusOK)
+}
+
+func (h *HTTPHandler) logoutCurrentDevice(ctx context.Context, w http.ResponseWriter, rfToken, accToken string) {
+	err := h.authService.Logout(ctx, rfToken, accToken)
+	if err != nil {
+		status, res := h.handleError(err)
+
+		h.sendResponse(w, res, status)
+		return
+	}
+
+	res := core.Response{}
+	res.Response = map[string]interface{}{
+		"message": "access token for the current device has been revoked",
+	}
+
 	h.sendResponse(w, res, http.StatusOK)
 }
 

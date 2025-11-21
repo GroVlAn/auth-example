@@ -111,6 +111,36 @@ func (ur *authRepository) AccessToken(ctx context.Context, token string) (core.A
 	return accessToken, nil
 }
 
+func (ur *authRepository) DeleteAllAccessTokens(ctx context.Context, userID string) error {
+	queryDeleteAllTokens := fmt.Sprintf(
+		"DELETE FROM %s WHERE user_id = $1",
+		tableAccessToken,
+	)
+
+	if _, err := ur.db.ExecContext(ctx, queryDeleteAllTokens, userID); err != nil {
+		return e.NewErrInternal(
+			fmt.Errorf("deleting all access tokens: %w", err),
+		)
+	}
+
+	return nil
+}
+
+func (ur *authRepository) DeleteAccessTokensByUserAgent(ctx context.Context, userID, userAgent string) error {
+	queryDeleteAccessTokens := fmt.Sprintf(
+		"DELETE FROM %s WHERE user_id = $1 AND user_agent = $2",
+		tableAccessToken,
+	)
+
+	if _, err := ur.db.ExecContext(ctx, queryDeleteAccessTokens, userID, userAgent); err != nil {
+		return e.NewErrInternal(
+			fmt.Errorf("deleting access tokens by user agent: %w", err),
+		)
+	}
+
+	return nil
+}
+
 func (ur *authRepository) DeleteAccessToken(ctx context.Context, token string) error {
 	queryDeleteAccessToken := fmt.Sprintf(
 		"DELETE FROM %s WHERE token = $1",
@@ -143,6 +173,36 @@ func (ur *authRepository) RefreshToken(ctx context.Context, token string) (core.
 	}
 
 	return refreshToken, nil
+}
+
+func (ur *authRepository) DeleteRefreshTokenByUserAgent(ctx context.Context, userID, userAgent string) error {
+	queryDeleteRefreshToken := fmt.Sprintf(
+		"DELETE FROM %s WHERE user_id = $1 AND user_agent = $2",
+		tableRefreshToken,
+	)
+
+	if _, err := ur.db.ExecContext(ctx, queryDeleteRefreshToken, userID, userAgent); err != nil {
+		return e.NewErrInternal(
+			fmt.Errorf("deleting refresh token by user agent: %w", err),
+		)
+	}
+
+	return nil
+}
+
+func (ur *authRepository) DeleteAllRefreshTokens(ctx context.Context, userID string) error {
+	queryDeleteAllTokens := fmt.Sprintf(
+		"DELETE FROM %s WHERE user_id = $1",
+		tableRefreshToken,
+	)
+
+	if _, err := ur.db.ExecContext(ctx, queryDeleteAllTokens, userID); err != nil {
+		return e.NewErrInternal(
+			fmt.Errorf("deleting all refresh tokens: %w", err),
+		)
+	}
+
+	return nil
 }
 
 func (ur *authRepository) DeleteRefreshToken(ctx context.Context, token string) error {

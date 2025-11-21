@@ -25,8 +25,11 @@ type authRepo interface {
 	CreateAccessToken(ctx context.Context, token core.AccessToken) error
 	AccessToken(ctx context.Context, token string) (core.AccessToken, error)
 	DeleteAccessToken(ctx context.Context, token string) error
+	DeleteAllAccessTokens(ctx context.Context, userID string) error
+	DeleteAccessTokensByUserAgent(ctx context.Context, userID, userAgent string) error
 	RefreshToken(ctx context.Context, token string) (core.RefreshToken, error)
 	DeleteRefreshToken(ctx context.Context, token string) error
+	DeleteAllRefreshTokens(ctx context.Context, userID string) error
 }
 
 type authService struct {
@@ -64,6 +67,7 @@ func (as *authService) Authenticate(ctx context.Context, authUser core.AuthUser,
 	}
 
 	artID := uuid.NewString()
+	accessToken.UserAgent = userAgent
 	refreshToken.UserAgent = userAgent
 
 	if err := as.authRepo.CreateTokens(ctx, accessToken, refreshToken, artID); err != nil {
@@ -82,7 +86,7 @@ func (as *authService) UpdateAccessToken(ctx context.Context, rfToken string) (c
 		)
 	}
 
-	tokenDetails, err := as.parseToken(rfToken)
+	tokenDetails, err := jwttoken.ParseToken(as.SecretKey, rfToken)
 	if err != nil {
 		return core.AccessToken{}, err
 	}
@@ -93,8 +97,8 @@ func (as *authService) UpdateAccessToken(ctx context.Context, rfToken string) (c
 
 	newToken, err := as.createAccessToken(existRfToken.ID,
 		core.User{
-			ID:       tokenDetails["user_id"].(string),
-			Username: tokenDetails["login"].(string),
+			ID:       tokenDetails.UserID,
+			Username: tokenDetails.Login,
 		})
 	if err != nil {
 		return core.AccessToken{}, fmt.Errorf("creating access token: %w", err)
@@ -122,6 +126,35 @@ func (as *authService) VerifyAccessToken(ctx context.Context, accToken string) e
 
 	if err := as.checkExpiredAccessToken(ctx, accToken, tokenDetails); err != nil {
 		return err
+	}
+
+	return nil
+}
+
+func (as *authService) Logout(ctx context.Context, refreshToken, accessToken string) error {
+	if err := as.authRepo.DeleteRefreshToken(ctx, refreshToken); err != nil {
+		return fmt.Errorf("deleting refresh token: %w", err)
+	}
+
+	if err := as.authRepo.DeleteAccessToken(ctx, accessToken); err != nil {
+		return fmt.Errorf("deleting access token: %w", err)
+	}
+
+	return nil
+}
+
+func (as *authService) LogoutAllDevices(ctx context.Context, accToken string) error {
+	tokenDetails, err := jwttoken.ParseToken(as.SecretKey, accToken)
+	if err != nil {
+		return e.NewErrUnauthorized(err, "invalid access token")
+	}
+
+	if err := as.authRepo.DeleteAllAccessTokens(ctx, tokenDetails.UserID); err != nil {
+		return fmt.Errorf("deleting all access tokens: %w", err)
+	}
+
+	if err := as.authRepo.DeleteAllRefreshTokens(ctx, tokenDetails.UserID); err != nil {
+		return fmt.Errorf("deleting all refresh tokens: %w", err)
 	}
 
 	return nil
@@ -229,40 +262,6 @@ func (as *authService) checkExistRefreshToken(ctx context.Context, token string)
 	return rfToken, nil
 }
 
-func (as *authService) parseToken(token string) (jwt.MapClaims, error) {
-	tokenClaims := jwt.MapClaims{}
-
-	jwtToken, err := jwt.ParseWithClaims(
-		token,
-		tokenClaims,
-		func(token *jwt.Token) (interface{}, error) {
-
-			switch token.Method.Alg() {
-			case jwt.SigningMethodHS256.Alg():
-				return []byte(as.SecretKey), nil
-			default:
-				return nil, fmt.Errorf("unexpected signing method: %v", token.Header["alg"])
-			}
-		},
-	)
-	if err != nil {
-		return jwt.MapClaims{}, e.NewErrUnauthorized(
-			fmt.Errorf("parsing access token: %w", err),
-			"invalid token",
-		)
-	}
-
-	tokenDetails, ok := jwtToken.Claims.(jwt.MapClaims)
-	if !ok {
-		return jwt.MapClaims{}, e.NewErrUnauthorized(
-			errors.New("invalid token"),
-			"invalid token",
-		)
-	}
-
-	return tokenDetails, nil
-}
-
 func (as *authService) checkExpiredAccessToken(ctx context.Context, token string, tokenDetails jwttoken.JWTDetails) error {
 	exp := time.Unix(int64(tokenDetails.EXP), 0)
 	now := time.Now()
@@ -274,8 +273,8 @@ func (as *authService) checkExpiredAccessToken(ctx context.Context, token string
 	return nil
 }
 
-func (as *authService) checkExpiredRefreshToken(ctx context.Context, token string, tokenDetails jwt.MapClaims) error {
-	exp := time.Unix(int64(tokenDetails["exp"].(float64)), 0)
+func (as *authService) checkExpiredRefreshToken(ctx context.Context, token string, tokenDetails jwttoken.JWTDetails) error {
+	exp := time.Unix(int64(tokenDetails.EXP), 0)
 	now := time.Now()
 
 	if now.After(exp) {
