@@ -48,9 +48,7 @@ func (h *HTTPHandler) auth(w http.ResponseWriter, r *http.Request) {
 	ctx, cancel := context.WithTimeout(r.Context(), h.DefaultTimeout)
 	defer cancel()
 
-	userAgent := r.Header.Get("User-Agent")
-
-	rfToken, accToken, err := h.authService.Authenticate(ctx, authUser, userAgent)
+	rfToken, accToken, err := h.authService.Authenticate(ctx, authUser)
 	if err != nil {
 		status, res := h.handleError(err)
 

@@ -39,7 +39,7 @@ func (ur *authRepository) CreateTokens(
 		}
 
 		queryCreateRefreshToken := fmt.Sprintf(
-			"INSERT INTO %s (id, token, start_ttl, end_ttl, user_agent, user_id) VALUES (:id, :token, :start_ttl, :end_ttl, :user_agent, :user_id)",
+			"INSERT INTO %s (id, token, start_ttl, end_ttl, user_id) VALUES (:id, :token, :start_ttl, :end_ttl, :user_id)",
 			tableRefreshToken,
 		)
 
@@ -126,21 +126,6 @@ func (ur *authRepository) DeleteAllAccessTokens(ctx context.Context, userID stri
 	return nil
 }
 
-func (ur *authRepository) DeleteAccessTokensByUserAgent(ctx context.Context, userID, userAgent string) error {
-	queryDeleteAccessTokens := fmt.Sprintf(
-		"DELETE FROM %s WHERE user_id = $1 AND user_agent = $2",
-		tableAccessToken,
-	)
-
-	if _, err := ur.db.ExecContext(ctx, queryDeleteAccessTokens, userID, userAgent); err != nil {
-		return e.NewErrInternal(
-			fmt.Errorf("deleting access tokens by user agent: %w", err),
-		)
-	}
-
-	return nil
-}
-
 func (ur *authRepository) DeleteAccessToken(ctx context.Context, token string) error {
 	queryDeleteAccessToken := fmt.Sprintf(
 		"DELETE FROM %s WHERE token = $1",
@@ -173,21 +158,6 @@ func (ur *authRepository) RefreshToken(ctx context.Context, token string) (core.
 	}
 
 	return refreshToken, nil
-}
-
-func (ur *authRepository) DeleteRefreshTokenByUserAgent(ctx context.Context, userID, userAgent string) error {
-	queryDeleteRefreshToken := fmt.Sprintf(
-		"DELETE FROM %s WHERE user_id = $1 AND user_agent = $2",
-		tableRefreshToken,
-	)
-
-	if _, err := ur.db.ExecContext(ctx, queryDeleteRefreshToken, userID, userAgent); err != nil {
-		return e.NewErrInternal(
-			fmt.Errorf("deleting refresh token by user agent: %w", err),
-		)
-	}
-
-	return nil
 }
 
 func (ur *authRepository) DeleteAllRefreshTokens(ctx context.Context, userID string) error {

@@ -26,7 +26,6 @@ type authRepo interface {
 	AccessToken(ctx context.Context, token string) (core.AccessToken, error)
 	DeleteAccessToken(ctx context.Context, token string) error
 	DeleteAllAccessTokens(ctx context.Context, userID string) error
-	DeleteAccessTokensByUserAgent(ctx context.Context, userID, userAgent string) error
 	RefreshToken(ctx context.Context, token string) (core.RefreshToken, error)
 	DeleteRefreshToken(ctx context.Context, token string) error
 	DeleteAllRefreshTokens(ctx context.Context, userID string) error
@@ -46,7 +45,7 @@ func NewAuthService(authRepo authRepo, userRepo userRepo, deps DepsAuthService) 
 	}
 }
 
-func (as *authService) Authenticate(ctx context.Context, authUser core.AuthUser, userAgent string) (core.RefreshToken, core.AccessToken, error) {
+func (as *authService) Authenticate(ctx context.Context, authUser core.AuthUser) (core.RefreshToken, core.AccessToken, error) {
 	user, err := as.user(ctx, authUser)
 	if err != nil {
 		return core.RefreshToken{}, core.AccessToken{}, fmt.Errorf("getting exist user: %w", err)
@@ -67,8 +66,6 @@ func (as *authService) Authenticate(ctx context.Context, authUser core.AuthUser,
 	}
 
 	artID := uuid.NewString()
-	accessToken.UserAgent = userAgent
-	refreshToken.UserAgent = userAgent
 
 	if err := as.authRepo.CreateTokens(ctx, accessToken, refreshToken, artID); err != nil {
 		return core.RefreshToken{}, core.AccessToken{}, fmt.Errorf("saving tokens: %w", err)

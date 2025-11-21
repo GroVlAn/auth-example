@@ -17,9 +17,7 @@ func (h *GRPCHandler) Login(ctx context.Context, req *auth.AuthUser) (*auth.Toke
 	ctx, cancel := context.WithTimeout(ctx, h.DefaultTimeout)
 	defer cancel()
 
-	userAgent := "grpc-client"
-
-	rfToken, accToken, err := h.authService.Authenticate(ctx, authUser, userAgent)
+	rfToken, accToken, err := h.authService.Authenticate(ctx, authUser)
 	if err != nil {
 		h.l.Error().Err(err).Msg("failed to authenticate user")
 		return nil, err
