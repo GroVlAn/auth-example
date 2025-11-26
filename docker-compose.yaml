@@ -17,6 +17,8 @@ services:
     depends_on:
       user_db:
         condition: service_healthy
+      migration:
+        condition: service_completed_successfully
 
   user_db:
     image: postgres
@@ -58,7 +60,8 @@ services:
       - "-database=postgres://${DB_USERNAME}:${DB_PASSWORD}@user_db:5432/${DB_NAME}?sslmode=disable"
       - "up"
     depends_on:
-      - user_db
+      user_db:
+        condition: service_healthy
     restart: on-failure
     networks:
       - postgres

@@ -2,6 +2,8 @@ package repository
 
 import (
 	"context"
+	"database/sql"
+	"errors"
 	"fmt"
 
 	"github.com/GroVlAn/auth-example/internal/core"
@@ -25,7 +27,9 @@ func NewUserRepository(db *sqlx.DB) *userRepository {
 
 func (ur *userRepository) Create(ctx context.Context, user core.User) error {
 	query := fmt.Sprintf(
-		"INSERT INTO %s (id, username, email, password_hash, fullname, created_at) VALUES (:id, :username, :email, :password_hash, :fullname, :created_at)",
+		`INSERT INTO %s (id, username, email, password_hash, fullname, is_superuser, 
+		created_at) VALUES (:id, :username, :email, :password_hash, :fullname, :is_superuser,
+		:created_at)`,
 		userTable,
 	)
 
@@ -39,8 +43,56 @@ func (ur *userRepository) Create(ctx context.Context, user core.User) error {
 	return nil
 }
 
+func (ur *userRepository) SetRole(ctx context.Context, userID string, roleID string) error {
+	query := fmt.Sprintf(
+		`UPDATE %s SET role_id=$1 WHERE id=$2`,
+		userTable,
+	)
+
+	_, err := ur.db.ExecContext(ctx, query, roleID, userID)
+	if err != nil {
+		return e.NewErrInternal(err)
+	}
+
+	return nil
+}
+
+func (ur *userRepository) IsSuperuser(ctx context.Context, userID string) (bool, error) {
+	query := fmt.Sprintf(
+		`SELECT id FROM %s WHERE id=$1 AND is_superuser=true`,
+		userTable,
+	)
+
+	_, err := ur.db.ExecContext(ctx, query, userID)
+	if errors.Is(err, sql.ErrNoRows) {
+		return false, nil
+	} else if err != nil {
+		return false, e.NewErrInternal(err)
+	}
+
+	return true, nil
+}
+
+func (ur *userRepository) SuperuserExist(ctx context.Context) (bool, error) {
+	query := fmt.Sprintf(
+		`SELECT EXISTS(SELECT 1 FROM %s WHERE is_superuser=true)`,
+		userTable,
+	)
+
+	var exist bool
+	if err := ur.db.GetContext(ctx, &exist, query); err != nil {
+		return false, e.NewErrInternal(err)
+	}
+
+	return exist, nil
+}
+
 func (ur *userRepository) GetByEmail(ctx context.Context, email string) (core.User, error) {
-	query := fmt.Sprintf("SELECT id, username, email, password_hash, fullname, created_at FROM %s WHERE email = $1", userTable)
+	query := fmt.Sprintf(
+		`SELECT id, username, email, password_hash, fullname, created_at FROM %s
+		WHERE email = $1`,
+		userTable,
+	)
 
 	var user core.User
 	err := ur.db.GetContext(ctx, &user, query, email)
@@ -55,7 +107,11 @@ func (ur *userRepository) GetByEmail(ctx context.Context, email string) (core.Us
 }
 
 func (ur *userRepository) GetByUsername(ctx context.Context, username string) (core.User, error) {
-	query := fmt.Sprintf("SELECT id, username, email, password_hash, fullname, created_at FROM %s WHERE username = $1", userTable)
+	query := fmt.Sprintf(
+		`SELECT id, username, email, password_hash, fullname, created_at FROM %s
+		WHERE username = $1`,
+		userTable,
+	)
 
 	var user core.User
 	err := ur.db.GetContext(ctx, &user, query, username)
@@ -70,7 +126,11 @@ func (ur *userRepository) GetByUsername(ctx context.Context, username string) (c
 }
 
 func (ur *userRepository) GetByID(ctx context.Context, id string) (core.User, error) {
-	query := fmt.Sprintf("SELECT id, username, email, password_hash, fullname, created_at FROM %s WHERE id = $1", userTable)
+	query := fmt.Sprintf(
+		`SELECT id, username, email, password_hash, fullname, created_at FROM %s 
+		WHERE id = $1`,
+		userTable,
+	)
 
 	var user core.User
 	err := ur.db.GetContext(ctx, &user, query, id)
@@ -85,7 +145,10 @@ func (ur *userRepository) GetByID(ctx context.Context, id string) (core.User, er
 }
 
 func (ur *userRepository) ExistByEmail(ctx context.Context, email string) (bool, error) {
-	query := fmt.Sprintf("SELECT EXISTS(SELECT 1 FROM %s WHERE email = $1)", userTable)
+	query := fmt.Sprintf(
+		`SELECT EXISTS(SELECT 1 FROM %s WHERE email = $1)`,
+		userTable,
+	)
 
 	var exists bool
 	err := ur.db.GetContext(ctx, &exists, query, email)
@@ -99,7 +162,10 @@ func (ur *userRepository) ExistByEmail(ctx context.Context, email string) (bool,
 }
 
 func (ur *userRepository) ExistByUsername(ctx context.Context, username string) (bool, error) {
-	query := fmt.Sprintf("SELECT EXISTS(SELECT 1 FROM %s WHERE username = $1)", userTable)
+	query := fmt.Sprintf(
+		`SELECT EXISTS(SELECT 1 FROM %s WHERE username = $1)`,
+		userTable,
+	)
 
 	var exists bool
 	err := ur.db.GetContext(ctx, &exists, query, username)

@@ -5,3 +5,9 @@ DROP TABLE access_refresh_token;
 DROP TABLE access_token;
 
 DROP TABLE refresh_token;
+
+DROP TABLE role;
+
+DROP TABLE permission;
+
+DROP TABLE role_permission;

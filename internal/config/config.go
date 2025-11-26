@@ -37,11 +37,19 @@ type PostgresSettings struct {
 	SSLMode  string `yaml:"ssl_mode"`
 }
 
+type Superuser struct {
+	Login    string `env:"SUPERUSER_LOGIN"`
+	Email    string `env:"SUPERUSER_EMAIL"`
+	Password string `env:"SUPERUSER_PASSWORD"`
+	Role     string `env:"SUPERUSER_ROLE" envDefault:"admin"`
+}
+
 type Config struct {
-	HTTP     HTTP             `yaml:"http"`
-	GRPC     GRPC             `yaml:"grpc"`
-	DB       PostgresSettings `yaml:"db"`
-	Settings Settings         `yaml:"settings"`
+	HTTP      HTTP             `yaml:"http"`
+	GRPC      GRPC             `yaml:"grpc"`
+	DB        PostgresSettings `yaml:"db"`
+	Settings  Settings         `yaml:"settings"`
+	Superuser Superuser
 }
 
 func New(path string) (*Config, error) {

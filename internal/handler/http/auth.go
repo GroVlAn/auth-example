@@ -4,7 +4,6 @@ import (
 	"context"
 	"encoding/json"
 	"errors"
-	"fmt"
 	"io"
 	"net/http"
 	"strings"
@@ -227,8 +226,6 @@ func (h *HTTPHandler) extractBearerToken(r *http.Request) (string, error) {
 			"authorization header is missing",
 		)
 	}
-
-	fmt.Println("authHeader: ", authHeader)
 
 	// Разделяем заголовок по пробелу
 	parts := strings.Split(authHeader, " ")

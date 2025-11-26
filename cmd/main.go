@@ -2,6 +2,7 @@ package main
 
 import (
 	"context"
+	"errors"
 	"flag"
 	"net/http"
 	"os"
@@ -10,6 +11,7 @@ import (
 	"time"
 
 	"github.com/GroVlAn/auth-example/internal/config"
+	"github.com/GroVlAn/auth-example/internal/core/e"
 	"github.com/GroVlAn/auth-example/internal/database"
 	grpcHandler "github.com/GroVlAn/auth-example/internal/handler/grpc"
 	httpHandler "github.com/GroVlAn/auth-example/internal/handler/http"
@@ -22,7 +24,8 @@ import (
 )
 
 const (
-	defaultConfigPath = "configs/config-example.yml"
+	defaultConfigPath     = "configs/config-example.yml"
+	defaultRoleConfigPath = "configs/role-config.json"
 )
 
 func main() {
@@ -42,6 +45,7 @@ func main() {
 	}
 
 	configPath := flag.String("config", defaultConfigPath, "Path to the configuration file")
+	roleConfigPath := flag.String("role-config", defaultRoleConfigPath, "Path to the configuration file")
 	flag.Parse()
 
 	cfg, err := config.New(*configPath)
@@ -67,6 +71,11 @@ func main() {
 	}()
 
 	repo := repository.New(db)
+
+	preloader := service.NewRoleLoader(repo.Role(), repo.User(), service.PreloaderDeps{
+		DefRolePath: *roleConfigPath,
+		HashCost:    cfg.Settings.HashCost,
+	})
 
 	s := service.New(repo.Auth(), repo.User(), service.DepsAuthService{
 		TokenRefreshEndTTL: cfg.Settings.TokenRefreshEndTTL,
@@ -115,6 +124,11 @@ func main() {
 		}
 	}()
 
+	go func() {
+		loadDefaultRoles(ctx, l, cfg, preloader)
+		createSuperuser(ctx, l, cfg, preloader)
+	}()
+
 	l.Info().Msgf("server start on port: %s load time: %v", cfg.HTTP.Port, time.Since(timeStart))
 
 	<-ctx.Done()
@@ -125,4 +139,49 @@ func main() {
 		l.Info().Msg("server shutdown gracefully")
 	}
 	gServer.Stop()
+}
+
+func loadDefaultRoles(ctx context.Context, l zerolog.Logger, cfg *config.Config, preloader *service.Preloader) {
+	ctxR, cancelR := context.WithTimeout(ctx, cfg.Settings.DefaultTimeout)
+	defer cancelR()
+
+	err := preloader.CreateDefaultRoles(ctxR)
+
+	var errWrapper *e.ErrWrapper
+	if errors.As(err, &errWrapper) {
+		switch errWrapper.ErrorType() {
+		case e.ErrorTypeInternal:
+			l.Fatal().Err(errWrapper.Unwrap()).Msg(errWrapper.Error())
+		default:
+			l.Fatal().Err(err).Msg("failed create default roles")
+		}
+	} else if err != nil {
+		l.Fatal().Err(err).Msg("failed create default roles")
+	}
+}
+
+func createSuperuser(ctx context.Context, l zerolog.Logger, cfg *config.Config, preloader *service.Preloader) {
+	ctxR, cancelR := context.WithTimeout(ctx, cfg.Settings.DefaultTimeout)
+	defer cancelR()
+
+	err := preloader.CreateSuperuser(ctxR, cfg.Superuser)
+	var errWrapper *e.ErrWrapper
+	var errValidation *e.ErrValidation
+	if errors.As(err, &errValidation) {
+		field, reason, ok := errValidation.FirstError()
+		if ok {
+			l.Error().Err(err).Msgf("failed validate superuser: field: %s reason: %s", field, reason)
+		}
+	}
+
+	if errors.As(err, &errWrapper) {
+		switch errWrapper.ErrorType() {
+		case e.ErrorTypeInternal:
+			l.Fatal().Err(errWrapper.Unwrap()).Msg(errWrapper.Error())
+		default:
+			l.Fatal().Err(err).Msg("failed create superuser")
+		}
+	} else if err != nil {
+		l.Fatal().Err(err).Msg("failed create superuser")
+	}
 }

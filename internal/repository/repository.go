@@ -16,6 +16,8 @@ type UserRepo interface {
 	GetByEmail(ctx context.Context, email string) (core.User, error)
 	GetByUsername(ctx context.Context, username string) (core.User, error)
 	GetByID(ctx context.Context, id string) (core.User, error)
+	SetRole(ctx context.Context, userID string, roleID string) error
+	SuperuserExist(ctx context.Context) (bool, error)
 	ExistByEmail(ctx context.Context, email string) (bool, error)
 	ExistByUsername(ctx context.Context, username string) (bool, error)
 }
@@ -31,15 +33,25 @@ type AuthRepo interface {
 	DeleteAllRefreshTokens(ctx context.Context, token string) error
 }
 
+type RoleRepo interface {
+	CreateRole(ctx context.Context, role core.Role) error
+	RoleExist(ctx context.Context, roleName string) (bool, error)
+	Role(ctx context.Context, roleName string) (core.Role, error)
+	CreatePermission(ctx context.Context, permission core.Permission, roleID, rpID string) error
+	Permissions(ctx context.Context, roleName string) ([]core.Permission, error)
+}
+
 type Repository struct {
 	userRepo UserRepo
 	authRepo AuthRepo
+	roleRepo RoleRepo
 }
 
 func New(db *sqlx.DB) *Repository {
 	return &Repository{
 		userRepo: NewUserRepository(db),
 		authRepo: NewAuthRepository(db),
+		roleRepo: NewRoleRepository(db),
 	}
 }
 
@@ -49,6 +61,10 @@ func (r *Repository) User() UserRepo {
 
 func (r *Repository) Auth() AuthRepo {
 	return r.authRepo
+}
+
+func (r *Repository) Role() RoleRepo {
+	return r.roleRepo
 }
 
 func handleQueryError(err error, msg string) error {
