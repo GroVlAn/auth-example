@@ -20,8 +20,7 @@ func (h *GRPCHandler) CreateUser(ctx context.Context, req *user.User) (*user.Suc
 	ctx, cancel := context.WithTimeout(ctx, h.DefaultTimeout)
 	defer cancel()
 
-	err := h.userService.CreateUser(ctx, u)
-	if err != nil {
+	if err := h.UserService.CreateUser(ctx, u); err != nil {
 		return nil, h.handleError(err)
 	}
 
@@ -40,7 +39,7 @@ func (h *GRPCHandler) GetUser(ctx context.Context, req *user.UserRequest) (*user
 	ctx, cancel := context.WithTimeout(ctx, h.DefaultTimeout)
 	defer cancel()
 
-	u, err := h.userService.User(ctx, userReq)
+	u, err := h.UserService.User(ctx, userReq)
 	if err != nil {
 		return nil, h.handleError(err)
 	}
@@ -52,5 +51,18 @@ func (h *GRPCHandler) GetUser(ctx context.Context, req *user.UserRequest) (*user
 		PasswordHash: u.Password,
 		Fullname:     u.Fullname,
 		CreatedAt:    timestamppb.New(u.CreatedAt),
+	}, nil
+}
+
+func (h *GRPCHandler) SerRole(ctx context.Context, req *user.RoleRequest) (*user.Success, error) {
+	ctx, cancel := context.WithTimeout(ctx, h.DefaultTimeout)
+	defer cancel()
+
+	if err := h.UserService.SetRole(ctx, req.UserId, req.RoleName); err != nil {
+		return nil, h.handleError(err)
+	}
+
+	return &user.Success{
+		Success: true,
 	}, nil
 }

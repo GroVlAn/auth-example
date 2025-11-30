@@ -17,7 +17,7 @@ func (h *GRPCHandler) Login(ctx context.Context, req *auth.AuthUser) (*auth.Toke
 	ctx, cancel := context.WithTimeout(ctx, h.DefaultTimeout)
 	defer cancel()
 
-	rfToken, accToken, err := h.authService.Authenticate(ctx, authUser)
+	rfToken, accToken, err := h.AuthService.Authenticate(ctx, authUser)
 	if err != nil {
 		return nil, h.handleError(err)
 	}
@@ -38,7 +38,7 @@ func (h *GRPCHandler) VerifyAccessToken(ctx context.Context, req *auth.Tokens) (
 	ctx, cancel := context.WithTimeout(ctx, h.DefaultTimeout)
 	defer cancel()
 
-	if err := h.authService.VerifyAccessToken(ctx, req.AccessToken.Token); err != nil {
+	if err := h.AuthService.VerifyAccessToken(ctx, req.AccessToken.Token); err != nil {
 		return nil, h.handleError(err)
 	}
 
@@ -51,7 +51,7 @@ func (h *GRPCHandler) UpdateAccessToken(ctx context.Context, req *auth.RefreshTo
 	ctx, cancel := context.WithTimeout(ctx, h.DefaultTimeout)
 	defer cancel()
 
-	newAccToken, err := h.authService.UpdateAccessToken(ctx, req.Token)
+	newAccToken, err := h.AuthService.UpdateAccessToken(ctx, req.Token)
 	if err != nil {
 		return nil, h.handleError(err)
 	}
@@ -65,7 +65,7 @@ func (h *GRPCHandler) Logout(ctx context.Context, req *auth.Tokens) (*auth.Succe
 	ctx, cancel := context.WithTimeout(ctx, h.DefaultTimeout)
 	defer cancel()
 
-	err := h.authService.Logout(ctx, req.RefreshToken.Token, req.AccessToken.Token)
+	err := h.AuthService.Logout(ctx, req.RefreshToken.Token, req.AccessToken.Token)
 	if err != nil {
 		return nil, h.handleError(err)
 	}
@@ -79,7 +79,7 @@ func (h *GRPCHandler) LogoutAllDevices(ctx context.Context, req *auth.AccessToke
 	ctx, cancel := context.WithTimeout(ctx, h.DefaultTimeout)
 	defer cancel()
 
-	err := h.authService.LogoutAllDevices(ctx, req.Token)
+	err := h.AuthService.LogoutAllDevices(ctx, req.Token)
 	if err != nil {
 		return nil, h.handleError(err)
 	}

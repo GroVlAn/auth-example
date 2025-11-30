@@ -5,6 +5,7 @@ import (
 	"net"
 
 	"github.com/GroVlAn/auth-example/api/auth"
+	"github.com/GroVlAn/auth-example/api/role"
 	"github.com/GroVlAn/auth-example/api/user"
 	"google.golang.org/grpc"
 )
@@ -12,6 +13,7 @@ import (
 type Deps struct {
 	UserService user.UserServiceServer
 	AuthService auth.AuthServiceServer
+	RoleService role.RoleServiceServer
 }
 
 type Server struct {
@@ -34,6 +36,7 @@ func (s *Server) ListenAndServe(port string) error {
 
 	user.RegisterUserServiceServer(s.srv, s.Deps.UserService)
 	auth.RegisterAuthServiceServer(s.srv, s.Deps.AuthService)
+	role.RegisterRoleServiceServer(s.srv, s.Deps.RoleService)
 
 	if err = s.srv.Serve(lis); err != nil {
 		return fmt.Errorf("failed serve grpc server: %w", err)

@@ -26,7 +26,13 @@ message Success {
     bool success = 1;
 }
 
+message RoleRequest {
+    string user_id = 1;
+    string role_name = 2;
+}
+
 service UserService {
     rpc CreateUser (User) returns (Success) {};
     rpc GetUser (UserRequest) returns (User) {};
+    rpc SetRole (RoleRequest) returns (Success) {};
 }

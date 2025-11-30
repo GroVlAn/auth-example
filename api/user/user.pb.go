@@ -218,6 +218,58 @@ func (x *Success) GetSuccess() bool {
 	return false
 }
 
+type RoleRequest struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	UserId        string                 `protobuf:"bytes,1,opt,name=user_id,json=userId,proto3" json:"user_id,omitempty"`
+	RoleName      string                 `protobuf:"bytes,2,opt,name=role_name,json=roleName,proto3" json:"role_name,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *RoleRequest) Reset() {
+	*x = RoleRequest{}
+	mi := &file_user_proto_msgTypes[3]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *RoleRequest) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*RoleRequest) ProtoMessage() {}
+
+func (x *RoleRequest) ProtoReflect() protoreflect.Message {
+	mi := &file_user_proto_msgTypes[3]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use RoleRequest.ProtoReflect.Descriptor instead.
+func (*RoleRequest) Descriptor() ([]byte, []int) {
+	return file_user_proto_rawDescGZIP(), []int{3}
+}
+
+func (x *RoleRequest) GetUserId() string {
+	if x != nil {
+		return x.UserId
+	}
+	return ""
+}
+
+func (x *RoleRequest) GetRoleName() string {
+	if x != nil {
+		return x.RoleName
+	}
+	return ""
+}
+
 var File_user_proto protoreflect.FileDescriptor
 
 const file_user_proto_rawDesc = "" +
@@ -238,13 +290,17 @@ const file_user_proto_rawDesc = "" +
 	"\busername\x18\x02 \x01(\tR\busername\x12\x14\n" +
 	"\x05email\x18\x03 \x01(\tR\x05email\"#\n" +
 	"\aSuccess\x12\x18\n" +
-	"\asuccess\x18\x01 \x01(\bR\asuccess2d\n" +
+	"\asuccess\x18\x01 \x01(\bR\asuccess\"C\n" +
+	"\vRoleRequest\x12\x17\n" +
+	"\auser_id\x18\x01 \x01(\tR\x06userId\x12\x1b\n" +
+	"\trole_name\x18\x02 \x01(\tR\broleName2\x93\x01\n" +
 	"\vUserService\x12)\n" +
 	"\n" +
 	"CreateUser\x12\n" +
 	".user.User\x1a\r.user.Success\"\x00\x12*\n" +
 	"\aGetUser\x12\x11.user.UserRequest\x1a\n" +
-	".user.User\"\x00B\aZ\x05/userb\x06proto3"
+	".user.User\"\x00\x12-\n" +
+	"\aSetRole\x12\x11.user.RoleRequest\x1a\r.user.Success\"\x00B\aZ\x05/userb\x06proto3"
 
 var (
 	file_user_proto_rawDescOnce sync.Once
@@ -258,21 +314,24 @@ func file_user_proto_rawDescGZIP() []byte {
 	return file_user_proto_rawDescData
 }
 
-var file_user_proto_msgTypes = make([]protoimpl.MessageInfo, 3)
+var file_user_proto_msgTypes = make([]protoimpl.MessageInfo, 4)
 var file_user_proto_goTypes = []any{
 	(*User)(nil),                  // 0: user.User
 	(*UserRequest)(nil),           // 1: user.UserRequest
 	(*Success)(nil),               // 2: user.Success
-	(*timestamppb.Timestamp)(nil), // 3: google.protobuf.Timestamp
+	(*RoleRequest)(nil),           // 3: user.RoleRequest
+	(*timestamppb.Timestamp)(nil), // 4: google.protobuf.Timestamp
 }
 var file_user_proto_depIdxs = []int32{
-	3, // 0: user.User.created_at:type_name -> google.protobuf.Timestamp
+	4, // 0: user.User.created_at:type_name -> google.protobuf.Timestamp
 	0, // 1: user.UserService.CreateUser:input_type -> user.User
 	1, // 2: user.UserService.GetUser:input_type -> user.UserRequest
-	2, // 3: user.UserService.CreateUser:output_type -> user.Success
-	0, // 4: user.UserService.GetUser:output_type -> user.User
-	3, // [3:5] is the sub-list for method output_type
-	1, // [1:3] is the sub-list for method input_type
+	3, // 3: user.UserService.SetRole:input_type -> user.RoleRequest
+	2, // 4: user.UserService.CreateUser:output_type -> user.Success
+	0, // 5: user.UserService.GetUser:output_type -> user.User
+	2, // 6: user.UserService.SetRole:output_type -> user.Success
+	4, // [4:7] is the sub-list for method output_type
+	1, // [1:4] is the sub-list for method input_type
 	1, // [1:1] is the sub-list for extension type_name
 	1, // [1:1] is the sub-list for extension extendee
 	0, // [0:1] is the sub-list for field type_name
@@ -289,7 +348,7 @@ func file_user_proto_init() {
 			GoPackagePath: reflect.TypeOf(x{}).PkgPath(),
 			RawDescriptor: unsafe.Slice(unsafe.StringData(file_user_proto_rawDesc), len(file_user_proto_rawDesc)),
 			NumEnums:      0,
-			NumMessages:   3,
+			NumMessages:   4,
 			NumExtensions: 0,
 			NumServices:   1,
 		},

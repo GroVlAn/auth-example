@@ -97,9 +97,16 @@ func main() {
 			DefaultTimeout: cfg.Settings.DefaultTimeout,
 		},
 	)
-	gh := grpcHandler.New(l, s.User(), s.Auth(), grpcHandler.Deps{
-		DefaultTimeout: cfg.Settings.DefaultTimeout,
-	})
+	gh := grpcHandler.New(
+		l,
+		grpcHandler.Services{
+			UserService: s.User(),
+			AuthService: s.Auth(),
+			RoleService: s.Role(),
+		},
+		grpcHandler.Deps{
+			DefaultTimeout: cfg.Settings.DefaultTimeout,
+		})
 
 	hServer := httpServer.New(
 		h.Handler(),
@@ -114,6 +121,7 @@ func main() {
 	gServer := grpcServer.New(
 		grpcServer.Deps{
 			UserService: gh,
+			RoleService: gh,
 			AuthService: gh,
 		},
 	)

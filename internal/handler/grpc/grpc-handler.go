@@ -6,6 +6,7 @@ import (
 	"time"
 
 	"github.com/GroVlAn/auth-example/api/auth"
+	"github.com/GroVlAn/auth-example/api/role"
 	"github.com/GroVlAn/auth-example/api/user"
 	"github.com/GroVlAn/auth-example/internal/core"
 	"github.com/GroVlAn/auth-example/internal/core/e"
@@ -25,27 +26,39 @@ type authenticator interface {
 type userService interface {
 	CreateUser(ctx context.Context, user core.User) error
 	User(ctx context.Context, userReq core.UserRequest) (core.User, error)
+	SetRole(ctx context.Context, userID string, roleName string) error
+}
+
+type roleService interface {
+	CreateRole(ctx context.Context, role core.Role) error
+	CreatePermission(ctx context.Context, permission core.Permission, roleName string) error
+	Permissions(ctx context.Context, roleName string) ([]core.Permission, error)
 }
 
 type Deps struct {
 	DefaultTimeout time.Duration
 }
 
+type Services struct {
+	UserService userService
+	RoleService roleService
+	AuthService authenticator
+}
+
 type GRPCHandler struct {
 	user.UnimplementedUserServiceServer
 	auth.UnimplementedAuthServiceServer
-	l           zerolog.Logger
-	userService userService
-	authService authenticator
+	role.UnimplementedRoleServiceServer
+	l zerolog.Logger
+	Services
 	Deps
 }
 
-func New(l zerolog.Logger, userService userService, authService authenticator, deps Deps) *GRPCHandler {
+func New(l zerolog.Logger, services Services, deps Deps) *GRPCHandler {
 	return &GRPCHandler{
-		l:           l,
-		userService: userService,
-		authService: authService,
-		Deps:        deps,
+		l:        l,
+		Services: services,
+		Deps:     deps,
 	}
 }
 
