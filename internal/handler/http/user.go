@@ -15,11 +15,13 @@ import (
 const (
 	registerEndpoint = "/register"
 	userEndpoint     = "/user"
+	setRoleEndpoint  = "/set-role"
 )
 
 func (h *HTTPHandler) userRoute(r chi.Router) {
 	r.Post(registerEndpoint, h.register)
 	r.Get(userEndpoint, h.user)
+	r.Patch(setRoleEndpoint, h.setRole)
 }
 
 func (h *HTTPHandler) register(w http.ResponseWriter, r *http.Request) {
@@ -40,7 +42,7 @@ func (h *HTTPHandler) register(w http.ResponseWriter, r *http.Request) {
 	ctx, cancel := context.WithTimeout(r.Context(), h.DefaultTimeout)
 	defer cancel()
 
-	err = h.userService.CreateUser(ctx, user)
+	err = h.UserService.CreateUser(ctx, user)
 	if err != nil {
 		status, res := h.handleError(err)
 
@@ -70,7 +72,7 @@ func (h *HTTPHandler) user(w http.ResponseWriter, r *http.Request) {
 	ctx, cancel := context.WithTimeout(r.Context(), h.DefaultTimeout)
 	defer cancel()
 
-	user, err := h.userService.User(ctx, userReq)
+	user, err := h.UserService.User(ctx, userReq)
 	if err != nil {
 		status, res := h.handleError(err)
 
@@ -84,6 +86,33 @@ func (h *HTTPHandler) user(w http.ResponseWriter, r *http.Request) {
 		status, res := h.handleError(
 			e.NewErrInternal(fmt.Errorf("failed to encode response body: %w", err)),
 		)
+
+		h.sendResponse(w, res, status)
+		return
+	}
+
+	w.WriteHeader(http.StatusOK)
+}
+
+func (h *HTTPHandler) setRole(w http.ResponseWriter, r *http.Request) {
+	body := r.Body
+	defer func(body io.ReadCloser) {
+		if err := body.Close(); err != nil {
+			h.l.Error().Err(err).Msg("failed to close request body")
+		}
+	}(body)
+
+	var roleRequest core.RoleRequest
+	if err := json.NewDecoder(body).Decode(&roleRequest); err != nil {
+		h.handleDecodeBody(w, err)
+		return
+	}
+
+	ctx, cancel := context.WithTimeout(r.Context(), h.DefaultTimeout)
+	defer cancel()
+
+	if err := h.UserService.SetRole(ctx, roleRequest.UserID, roleRequest.RoleName); err != nil {
+		status, res := h.handleError(err)
 
 		h.sendResponse(w, res, status)
 		return

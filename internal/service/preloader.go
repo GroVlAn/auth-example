@@ -12,7 +12,7 @@ import (
 	"github.com/google/uuid"
 )
 
-type roleRepo interface {
+type supRoleRepo interface {
 	CreateRole(ctx context.Context, role core.Role) error
 	RoleExist(ctx context.Context, roleName string) (bool, error)
 	Role(ctx context.Context, roleName string) (core.Role, error)
@@ -32,12 +32,12 @@ type PreloaderDeps struct {
 }
 
 type Preloader struct {
-	roleRepo roleRepo
+	roleRepo supRoleRepo
 	userRepo superuserRepo
 	PreloaderDeps
 }
 
-func NewRoleLoader(roleRepo roleRepo, userRepo superuserRepo, deps PreloaderDeps) *Preloader {
+func NewRoleLoader(roleRepo supRoleRepo, userRepo superuserRepo, deps PreloaderDeps) *Preloader {
 	return &Preloader{
 		roleRepo:      roleRepo,
 		userRepo:      userRepo,

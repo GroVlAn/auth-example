@@ -17,17 +17,26 @@ type Authenticator interface {
 type UserService interface {
 	CreateUser(ctx context.Context, user core.User) error
 	User(ctx context.Context, userReq core.UserRequest) (core.User, error)
+	SetRole(ctx context.Context, userID string, roleName string) error
+}
+
+type RoleService interface {
+	CreateRole(ctx context.Context, role core.Role) error
+	CreatePermission(ctx context.Context, permission core.Permission, roleName string) error
+	Permissions(ctx context.Context, roleName string) ([]core.Permission, error)
 }
 
 type Service struct {
 	auth Authenticator
 	user UserService
+	role RoleService
 }
 
-func New(authRepo authRepo, userRepo userRepo, depsAuth DepsAuthService, depsUser DepsUserService) *Service {
+func New(authRepo authRepo, userRepo userRepo, roleRepo roleRepo, depsAuth DepsAuthService, depsUser DepsUserService) *Service {
 	return &Service{
 		auth: NewAuthService(authRepo, userRepo, depsAuth),
-		user: NewUserService(userRepo, depsUser),
+		user: NewUserService(userRepo, roleRepo, depsUser),
+		role: NewRoleService(roleRepo),
 	}
 }
 
@@ -37,4 +46,8 @@ func (s *Service) Auth() Authenticator {
 
 func (s *Service) User() UserService {
 	return s.user
+}
+
+func (s *Service) Role() RoleService {
+	return s.role
 }

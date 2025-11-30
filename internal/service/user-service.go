@@ -2,6 +2,7 @@ package service
 
 import (
 	"context"
+	"fmt"
 	"time"
 
 	"github.com/GroVlAn/auth-example/internal/core"
@@ -16,6 +17,10 @@ const (
 	invalidPasswordMsg = "Password must be at least 8 characters long and contain: one uppercase letter, one lowercase letter, one number, and one special symbol"
 )
 
+type userRoleRepo interface {
+	Role(ctx context.Context, roleName string) (core.Role, error)
+}
+
 type userRepo interface {
 	Create(ctx context.Context, user core.User) error
 	GetByEmail(ctx context.Context, email string) (core.User, error)
@@ -23,6 +28,7 @@ type userRepo interface {
 	GetByID(ctx context.Context, id string) (core.User, error)
 	ExistByEmail(ctx context.Context, email string) (bool, error)
 	ExistByUsername(ctx context.Context, username string) (bool, error)
+	SetRole(ctx context.Context, userID string, roleID string) error
 }
 
 type DepsUserService struct {
@@ -30,13 +36,15 @@ type DepsUserService struct {
 }
 
 type userService struct {
-	repo userRepo
+	userRepo userRepo
+	roleRepo userRoleRepo
 	DepsUserService
 }
 
-func NewUserService(repo userRepo, deps DepsUserService) *userService {
+func NewUserService(userRepo userRepo, roleRepo userRoleRepo, deps DepsUserService) *userService {
 	return &userService{
-		repo:            repo,
+		userRepo:        userRepo,
+		roleRepo:        roleRepo,
 		DepsUserService: deps,
 	}
 }
@@ -54,7 +62,7 @@ func (us *userService) CreateUser(ctx context.Context, user core.User) error {
 
 	user.PasswordHash = string(passwordHash)
 
-	exist, err := us.repo.ExistByEmail(ctx, user.Email)
+	exist, err := us.userRepo.ExistByEmail(ctx, user.Email)
 	if err != nil {
 		return err
 	}
@@ -65,7 +73,7 @@ func (us *userService) CreateUser(ctx context.Context, user core.User) error {
 		)
 	}
 
-	exist, err = us.repo.ExistByUsername(ctx, user.Username)
+	exist, err = us.userRepo.ExistByUsername(ctx, user.Username)
 	if err != nil {
 		return err
 	}
@@ -78,7 +86,7 @@ func (us *userService) CreateUser(ctx context.Context, user core.User) error {
 
 	user.CreatedAt = time.Now()
 
-	return us.repo.Create(ctx, user)
+	return us.userRepo.Create(ctx, user)
 }
 
 func (us *userService) User(ctx context.Context, userReq core.UserRequest) (core.User, error) {
@@ -88,12 +96,25 @@ func (us *userService) User(ctx context.Context, userReq core.UserRequest) (core
 
 	switch {
 	case userReq.ID != "":
-		return us.repo.GetByID(ctx, userReq.ID)
+		return us.userRepo.GetByID(ctx, userReq.ID)
 	case userReq.Username != "":
-		return us.repo.GetByUsername(ctx, userReq.Username)
+		return us.userRepo.GetByUsername(ctx, userReq.Username)
 	default:
-		return us.repo.GetByEmail(ctx, userReq.Email)
+		return us.userRepo.GetByEmail(ctx, userReq.Email)
 	}
+}
+
+func (us *userService) SetRole(ctx context.Context, userID string, roleName string) error {
+	role, err := us.roleRepo.Role(ctx, roleName)
+	if err != nil {
+		return fmt.Errorf("getting role by name: %w", err)
+	}
+
+	if err := us.userRepo.SetRole(ctx, userID, role.ID); err != nil {
+		return fmt.Errorf("setting role to user: %w", err)
+	}
+
+	return nil
 }
 
 func (us *userService) validateUserRequest(userReq core.UserRequest) *e.ErrValidation {

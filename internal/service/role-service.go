@@ -1,0 +1,78 @@
+package service
+
+import (
+	"context"
+	"errors"
+	"fmt"
+	"time"
+
+	"github.com/GroVlAn/auth-example/internal/core"
+	"github.com/GroVlAn/auth-example/internal/core/e"
+	"github.com/google/uuid"
+)
+
+type roleRepo interface {
+	CreateRole(ctx context.Context, role core.Role) error
+	RoleExist(ctx context.Context, roleName string) (bool, error)
+	Role(ctx context.Context, roleName string) (core.Role, error)
+	CreatePermission(ctx context.Context, permission core.Permission, roleID, rpID string) error
+	Permissions(ctx context.Context, roleName string) ([]core.Permission, error)
+}
+
+type roleService struct {
+	roleRepo roleRepo
+}
+
+func NewRoleService(roleRepo supRoleRepo) *roleService {
+	return &roleService{
+		roleRepo: roleRepo,
+	}
+}
+
+func (rs *roleService) CreateRole(ctx context.Context, role core.Role) error {
+	existedRole, err := rs.roleRepo.RoleExist(ctx, role.Name)
+	if err != nil {
+		return fmt.Errorf("getting existed role: %w", err)
+	}
+	if existedRole {
+		return e.NewErrConflict(
+			errors.New("role exist"),
+			fmt.Sprintf("role: %s already exist", role.Name),
+		)
+	}
+
+	role.ID = uuid.NewString()
+	role.CreatedAt = time.Now()
+
+	if err := rs.roleRepo.CreateRole(ctx, role); err != nil {
+		return fmt.Errorf("creating new role: %w", err)
+	}
+
+	return nil
+}
+
+func (rs *roleService) CreatePermission(ctx context.Context, permission core.Permission, roleName string) error {
+	role, err := rs.roleRepo.Role(ctx, roleName)
+	if err != nil {
+		return fmt.Errorf("getting role by name: %w", err)
+	}
+
+	permission.ID = uuid.NewString()
+	permission.CreatedAt = time.Now()
+	rpID := uuid.NewString()
+
+	if err := rs.roleRepo.CreatePermission(ctx, permission, role.ID, rpID); err != nil {
+		return fmt.Errorf("creating permission: %w", err)
+	}
+
+	return nil
+}
+
+func (rs *roleService) Permissions(ctx context.Context, roleName string) ([]core.Permission, error) {
+	permissions, err := rs.roleRepo.Permissions(ctx, roleName)
+	if err != nil {
+		return nil, fmt.Errorf("getting permissions by role name: %w", err)
+	}
+
+	return permissions, nil
+}

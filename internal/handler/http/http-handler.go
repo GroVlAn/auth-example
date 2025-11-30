@@ -26,6 +26,13 @@ type authenticator interface {
 type userService interface {
 	CreateUser(ctx context.Context, user core.User) error
 	User(ctx context.Context, userReq core.UserRequest) (core.User, error)
+	SetRole(ctx context.Context, userID string, roleName string) error
+}
+
+type roleService interface {
+	CreateRole(ctx context.Context, role core.Role) error
+	CreatePermission(ctx context.Context, permission core.Permission, roleName string) error
+	Permissions(ctx context.Context, roleName string) ([]core.Permission, error)
 }
 
 type Deps struct {
@@ -33,19 +40,27 @@ type Deps struct {
 	DefaultTimeout time.Duration
 }
 
+type Services struct {
+	UserService userService
+	AuthService authenticator
+	RoleService roleService
+}
+
 type HTTPHandler struct {
-	l           zerolog.Logger
-	userService userService
-	authService authenticator
+	l zerolog.Logger
+	Services
 	Deps
 }
 
-func New(l zerolog.Logger, userService userService, authService authenticator, deps Deps) *HTTPHandler {
+func New(
+	l zerolog.Logger,
+	services Services,
+	deps Deps,
+) *HTTPHandler {
 	return &HTTPHandler{
-		l:           l,
-		userService: userService,
-		authService: authService,
-		Deps:        deps,
+		l:        l,
+		Services: services,
+		Deps:     deps,
 	}
 }
 
@@ -63,6 +78,7 @@ func (h *HTTPHandler) Handler() *chi.Mux {
 	r.Route(h.BasePath, func(r chi.Router) {
 		h.userRoute(r)
 		h.authRoute(r)
+		h.roleRoute(r)
 	})
 
 	return r

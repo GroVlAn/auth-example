@@ -77,7 +77,7 @@ func main() {
 		HashCost:    cfg.Settings.HashCost,
 	})
 
-	s := service.New(repo.Auth(), repo.User(), service.DepsAuthService{
+	s := service.New(repo.Auth(), repo.User(), repo.Role(), service.DepsAuthService{
 		TokenRefreshEndTTL: cfg.Settings.TokenRefreshEndTTL,
 		TokenAccessEndTTL:  cfg.Settings.TokenAccessEndTTL,
 		SecretKey:          cfg.Settings.SecretKey,
@@ -85,10 +85,18 @@ func main() {
 		HashCost: cfg.Settings.HashCost,
 	})
 
-	h := httpHandler.New(l, s.User(), s.Auth(), httpHandler.Deps{
-		BasePath:       cfg.HTTP.BaseHTTPPath,
-		DefaultTimeout: cfg.Settings.DefaultTimeout,
-	})
+	h := httpHandler.New(
+		l,
+		httpHandler.Services{
+			UserService: s.User(),
+			AuthService: s.Auth(),
+			RoleService: s.Role(),
+		},
+		httpHandler.Deps{
+			BasePath:       cfg.HTTP.BaseHTTPPath,
+			DefaultTimeout: cfg.Settings.DefaultTimeout,
+		},
+	)
 	gh := grpcHandler.New(l, s.User(), s.Auth(), grpcHandler.Deps{
 		DefaultTimeout: cfg.Settings.DefaultTimeout,
 	})

@@ -47,7 +47,7 @@ func (h *HTTPHandler) auth(w http.ResponseWriter, r *http.Request) {
 	ctx, cancel := context.WithTimeout(r.Context(), h.DefaultTimeout)
 	defer cancel()
 
-	rfToken, accToken, err := h.authService.Authenticate(ctx, authUser)
+	rfToken, accToken, err := h.AuthService.Authenticate(ctx, authUser)
 	if err != nil {
 		status, res := h.handleError(err)
 
@@ -86,7 +86,7 @@ func (h *HTTPHandler) verifyAccessToken(w http.ResponseWriter, r *http.Request) 
 	ctx, cancel := context.WithTimeout(r.Context(), h.DefaultTimeout)
 	defer cancel()
 
-	if err := h.authService.VerifyAccessToken(ctx, accToken); err != nil {
+	if err := h.AuthService.VerifyAccessToken(ctx, accToken); err != nil {
 		status, res := h.handleError(err)
 
 		h.sendResponse(w, res, status)
@@ -125,7 +125,7 @@ func (h *HTTPHandler) updateAccessToken(w http.ResponseWriter, r *http.Request) 
 	ctx, cancel := context.WithTimeout(r.Context(), h.DefaultTimeout)
 	defer cancel()
 
-	newAccToken, err := h.authService.UpdateAccessToken(ctx, rfToken)
+	newAccToken, err := h.AuthService.UpdateAccessToken(ctx, rfToken)
 	if err != nil {
 		status, res := h.handleError(err)
 
@@ -185,7 +185,7 @@ func (h *HTTPHandler) logout(w http.ResponseWriter, r *http.Request) {
 }
 
 func (h *HTTPHandler) logoutAllDevices(ctx context.Context, w http.ResponseWriter, accToken string) {
-	err := h.authService.LogoutAllDevices(ctx, accToken)
+	err := h.AuthService.LogoutAllDevices(ctx, accToken)
 	if err != nil {
 		status, res := h.handleError(err)
 
@@ -202,7 +202,7 @@ func (h *HTTPHandler) logoutAllDevices(ctx context.Context, w http.ResponseWrite
 }
 
 func (h *HTTPHandler) logoutCurrentDevice(ctx context.Context, w http.ResponseWriter, rfToken, accToken string) {
-	err := h.authService.Logout(ctx, rfToken, accToken)
+	err := h.AuthService.Logout(ctx, rfToken, accToken)
 	if err != nil {
 		status, res := h.handleError(err)
 

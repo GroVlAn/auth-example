@@ -28,3 +28,13 @@ type RoleElement struct {
 	Description string              `json:"description"`
 	Permissions []PermissionElement `json:"permissions"`
 }
+
+type RoleRequest struct {
+	UserID   string `json:"user_id"`
+	RoleName string `json:"role_name"`
+}
+
+type PermissionRequest struct {
+	Permission Permission `json:"permission"`
+	RoleName   string     `json:"role_name"`
+}
