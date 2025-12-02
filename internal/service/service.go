@@ -18,6 +18,11 @@ type UserService interface {
 	CreateUser(ctx context.Context, user core.User) error
 	User(ctx context.Context, userReq core.UserRequest) (core.User, error)
 	SetRole(ctx context.Context, userID string, roleName string) error
+	InactivateUser(ctx context.Context, userReq core.UserRequest) error
+	RestoreUser(ctx context.Context, userReq core.UserRequest) error
+	BanUser(ctx context.Context, userReq core.UserRequest) error
+	UnbanUser(ctx context.Context, userReq core.UserRequest) error
+	DeleteInactiveUser(ctx context.Context) error
 }
 
 type RoleService interface {

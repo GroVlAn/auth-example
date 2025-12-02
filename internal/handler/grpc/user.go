@@ -66,3 +66,42 @@ func (h *GRPCHandler) SerRole(ctx context.Context, req *user.RoleRequest) (*user
 		Success: true,
 	}, nil
 }
+
+func (h *GRPCHandler) InactivateUser(ctx context.Context, req *user.UserRequest) (*user.Success, error) {
+	return h.changeUserStatus(ctx, req, h.UserService.InactivateUser)
+}
+
+func (h *GRPCHandler) RestoreUser(ctx context.Context, req *user.UserRequest) (*user.Success, error) {
+	return h.changeUserStatus(ctx, req, h.UserService.RestoreUser)
+}
+
+func (h *GRPCHandler) BanUser(ctx context.Context, req *user.UserRequest) (*user.Success, error) {
+	return h.changeUserStatus(ctx, req, h.UserService.BanUser)
+}
+
+func (h *GRPCHandler) UnbanUser(ctx context.Context, req *user.UserRequest) (*user.Success, error) {
+	return h.changeUserStatus(ctx, req, h.UserService.UnbanUser)
+}
+
+func (h *GRPCHandler) changeUserStatus(
+	ctx context.Context,
+	req *user.UserRequest,
+	fn func(context.Context, core.UserRequest) error,
+) (*user.Success, error) {
+	ctx, cancel := context.WithTimeout(ctx, h.DefaultTimeout)
+	defer cancel()
+
+	userReq := core.UserRequest{
+		ID:       req.ID,
+		Username: req.Username,
+		Email:    req.Email,
+	}
+
+	if err := fn(ctx, userReq); err != nil {
+		return nil, h.handleError(err)
+	}
+
+	return &user.Success{
+		Success: true,
+	}, nil
+}

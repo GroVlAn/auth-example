@@ -32,6 +32,7 @@ CREATE TABLE auth_user
     fullname text NOT NULL,
     is_active boolean NOT NULL DEFAULT TRUE,
     is_superuser boolean NOT NULL DEFAULT FALSE,
+    is_banned boolean NOT NULL DEFAULT FALSE,
     created_at timestamp NOT NULL DEFAULT CURRENT_TIMESTAMP,
     role_id varchar(255) REFERENCES role(id) ON DELETE SET NULL
 );

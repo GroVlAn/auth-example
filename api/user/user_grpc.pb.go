@@ -19,9 +19,13 @@ import (
 const _ = grpc.SupportPackageIsVersion9
 
 const (
-	UserService_CreateUser_FullMethodName = "/user.UserService/CreateUser"
-	UserService_GetUser_FullMethodName    = "/user.UserService/GetUser"
-	UserService_SetRole_FullMethodName    = "/user.UserService/SetRole"
+	UserService_CreateUser_FullMethodName     = "/user.UserService/CreateUser"
+	UserService_GetUser_FullMethodName        = "/user.UserService/GetUser"
+	UserService_SetRole_FullMethodName        = "/user.UserService/SetRole"
+	UserService_InactivateUser_FullMethodName = "/user.UserService/InactivateUser"
+	UserService_RestoreUser_FullMethodName    = "/user.UserService/RestoreUser"
+	UserService_BanUser_FullMethodName        = "/user.UserService/BanUser"
+	UserService_UnbanUser_FullMethodName      = "/user.UserService/UnbanUser"
 )
 
 // UserServiceClient is the client API for UserService service.
@@ -31,6 +35,10 @@ type UserServiceClient interface {
 	CreateUser(ctx context.Context, in *User, opts ...grpc.CallOption) (*Success, error)
 	GetUser(ctx context.Context, in *UserRequest, opts ...grpc.CallOption) (*User, error)
 	SetRole(ctx context.Context, in *RoleRequest, opts ...grpc.CallOption) (*Success, error)
+	InactivateUser(ctx context.Context, in *UserRequest, opts ...grpc.CallOption) (*Success, error)
+	RestoreUser(ctx context.Context, in *UserRequest, opts ...grpc.CallOption) (*Success, error)
+	BanUser(ctx context.Context, in *UserRequest, opts ...grpc.CallOption) (*Success, error)
+	UnbanUser(ctx context.Context, in *UserRequest, opts ...grpc.CallOption) (*Success, error)
 }
 
 type userServiceClient struct {
@@ -71,6 +79,46 @@ func (c *userServiceClient) SetRole(ctx context.Context, in *RoleRequest, opts .
 	return out, nil
 }
 
+func (c *userServiceClient) InactivateUser(ctx context.Context, in *UserRequest, opts ...grpc.CallOption) (*Success, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(Success)
+	err := c.cc.Invoke(ctx, UserService_InactivateUser_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *userServiceClient) RestoreUser(ctx context.Context, in *UserRequest, opts ...grpc.CallOption) (*Success, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(Success)
+	err := c.cc.Invoke(ctx, UserService_RestoreUser_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *userServiceClient) BanUser(ctx context.Context, in *UserRequest, opts ...grpc.CallOption) (*Success, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(Success)
+	err := c.cc.Invoke(ctx, UserService_BanUser_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *userServiceClient) UnbanUser(ctx context.Context, in *UserRequest, opts ...grpc.CallOption) (*Success, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(Success)
+	err := c.cc.Invoke(ctx, UserService_UnbanUser_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
 // UserServiceServer is the server API for UserService service.
 // All implementations must embed UnimplementedUserServiceServer
 // for forward compatibility.
@@ -78,6 +126,10 @@ type UserServiceServer interface {
 	CreateUser(context.Context, *User) (*Success, error)
 	GetUser(context.Context, *UserRequest) (*User, error)
 	SetRole(context.Context, *RoleRequest) (*Success, error)
+	InactivateUser(context.Context, *UserRequest) (*Success, error)
+	RestoreUser(context.Context, *UserRequest) (*Success, error)
+	BanUser(context.Context, *UserRequest) (*Success, error)
+	UnbanUser(context.Context, *UserRequest) (*Success, error)
 	mustEmbedUnimplementedUserServiceServer()
 }
 
@@ -96,6 +148,18 @@ func (UnimplementedUserServiceServer) GetUser(context.Context, *UserRequest) (*U
 }
 func (UnimplementedUserServiceServer) SetRole(context.Context, *RoleRequest) (*Success, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method SetRole not implemented")
+}
+func (UnimplementedUserServiceServer) InactivateUser(context.Context, *UserRequest) (*Success, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method InactivateUser not implemented")
+}
+func (UnimplementedUserServiceServer) RestoreUser(context.Context, *UserRequest) (*Success, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method RestoreUser not implemented")
+}
+func (UnimplementedUserServiceServer) BanUser(context.Context, *UserRequest) (*Success, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method BanUser not implemented")
+}
+func (UnimplementedUserServiceServer) UnbanUser(context.Context, *UserRequest) (*Success, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method UnbanUser not implemented")
 }
 func (UnimplementedUserServiceServer) mustEmbedUnimplementedUserServiceServer() {}
 func (UnimplementedUserServiceServer) testEmbeddedByValue()                     {}
@@ -172,6 +236,78 @@ func _UserService_SetRole_Handler(srv interface{}, ctx context.Context, dec func
 	return interceptor(ctx, in, info, handler)
 }
 
+func _UserService_InactivateUser_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(UserRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(UserServiceServer).InactivateUser(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: UserService_InactivateUser_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(UserServiceServer).InactivateUser(ctx, req.(*UserRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _UserService_RestoreUser_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(UserRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(UserServiceServer).RestoreUser(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: UserService_RestoreUser_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(UserServiceServer).RestoreUser(ctx, req.(*UserRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _UserService_BanUser_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(UserRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(UserServiceServer).BanUser(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: UserService_BanUser_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(UserServiceServer).BanUser(ctx, req.(*UserRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _UserService_UnbanUser_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(UserRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(UserServiceServer).UnbanUser(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: UserService_UnbanUser_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(UserServiceServer).UnbanUser(ctx, req.(*UserRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
 // UserService_ServiceDesc is the grpc.ServiceDesc for UserService service.
 // It's only intended for direct use with grpc.RegisterService,
 // and not to be introspected or modified (even as a copy)
@@ -190,6 +326,22 @@ var UserService_ServiceDesc = grpc.ServiceDesc{
 		{
 			MethodName: "SetRole",
 			Handler:    _UserService_SetRole_Handler,
+		},
+		{
+			MethodName: "InactivateUser",
+			Handler:    _UserService_InactivateUser_Handler,
+		},
+		{
+			MethodName: "RestoreUser",
+			Handler:    _UserService_RestoreUser_Handler,
+		},
+		{
+			MethodName: "BanUser",
+			Handler:    _UserService_BanUser_Handler,
+		},
+		{
+			MethodName: "UnbanUser",
+			Handler:    _UserService_UnbanUser_Handler,
 		},
 	},
 	Streams:  []grpc.StreamDesc{},

@@ -27,6 +27,10 @@ type userService interface {
 	CreateUser(ctx context.Context, user core.User) error
 	User(ctx context.Context, userReq core.UserRequest) (core.User, error)
 	SetRole(ctx context.Context, userID string, roleName string) error
+	InactivateUser(ctx context.Context, userReq core.UserRequest) error
+	RestoreUser(ctx context.Context, userReq core.UserRequest) error
+	BanUser(ctx context.Context, userReq core.UserRequest) error
+	UnbanUser(ctx context.Context, userReq core.UserRequest) error
 }
 
 type roleService interface {
@@ -206,4 +210,14 @@ func (h *HTTPHandler) handleErrorWrapper(errWrapper *e.ErrWrapper) (int, core.Re
 			},
 		}
 	}
+}
+
+func (h *HTTPHandler) withBodyClose(body io.ReadCloser, fn func(io.ReadCloser)) {
+	defer func(body io.ReadCloser) {
+		if err := body.Close(); err != nil {
+			h.l.Error().Err(err).Msg("failed to close request body")
+		}
+	}(body)
+
+	fn(body)
 }

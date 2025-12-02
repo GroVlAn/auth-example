@@ -18,6 +18,7 @@ type User struct {
 	CreatedAt    time.Time `json:"create_at" db:"created_at"`
 	IsSuperuser  bool      `json:"is_superuser" db:"is_superuser"`
 	IsActive     bool      `json:"is_active" db:"is_active"`
+	IsBanned     bool      `json:"is_banned" db:"is_banned"`
 	RoleID       string    `json:"-" db:"role_id"`
 }
 

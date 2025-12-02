@@ -35,4 +35,8 @@ service UserService {
     rpc CreateUser (User) returns (Success) {};
     rpc GetUser (UserRequest) returns (User) {};
     rpc SetRole (RoleRequest) returns (Success) {};
+    rpc InactivateUser (UserRequest) returns (Success) {};
+    rpc RestoreUser (UserRequest) returns (Success) {};
+    rpc BanUser (UserRequest) returns (Success) {};
+    rpc UnbanUser (UserRequest) returns (Success) {};
 }

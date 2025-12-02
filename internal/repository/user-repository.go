@@ -177,3 +177,68 @@ func (ur *userRepository) ExistByUsername(ctx context.Context, username string) 
 
 	return exists, nil
 }
+
+func (ur *userRepository) BanUser(ctx context.Context, userID string) error {
+	query := fmt.Sprintf(
+		`UPDATE %s SET is_banned=true WHERE id=$1`,
+		userTable,
+	)
+
+	if _, err := ur.db.ExecContext(ctx, query, userID); err != nil {
+		return e.NewErrInternal(err)
+	}
+
+	return nil
+}
+
+func (ur *userRepository) UnbanUser(ctx context.Context, userID string) error {
+	query := fmt.Sprintf(
+		`UPDATE %s SET is_banned=false WHERE id=$1`,
+		userTable,
+	)
+
+	if _, err := ur.db.ExecContext(ctx, query, userID); err != nil {
+		return e.NewErrInternal(err)
+	}
+
+	return nil
+}
+
+func (ur *userRepository) InactivateUser(ctx context.Context, userID string) error {
+	query := fmt.Sprintf(
+		`UPDATE %s SET is_active=false WHERE id=$1`,
+		userTable,
+	)
+
+	if _, err := ur.db.ExecContext(ctx, query, userID); err != nil {
+		return e.NewErrInternal(err)
+	}
+
+	return nil
+}
+
+func (ur *userRepository) RestoreUser(ctx context.Context, userID string) error {
+	query := fmt.Sprintf(
+		`UPDATE %s SET is_active=true WHERE id=$1`,
+		userTable,
+	)
+
+	if _, err := ur.db.ExecContext(ctx, query, userID); err != nil {
+		return e.NewErrInternal(err)
+	}
+
+	return nil
+}
+
+func (ur *userRepository) DeleteInactiveUser(ctx context.Context) error {
+	query := fmt.Sprintf(
+		`DELETE FROM %s WHERE is_active=false`,
+		userTable,
+	)
+
+	if _, err := ur.db.ExecContext(ctx, query); err != nil {
+		return e.NewErrInternal(err)
+	}
+
+	return nil
+}

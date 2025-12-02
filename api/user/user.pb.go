@@ -293,14 +293,18 @@ const file_user_proto_rawDesc = "" +
 	"\asuccess\x18\x01 \x01(\bR\asuccess\"C\n" +
 	"\vRoleRequest\x12\x17\n" +
 	"\auser_id\x18\x01 \x01(\tR\x06userId\x12\x1b\n" +
-	"\trole_name\x18\x02 \x01(\tR\broleName2\x93\x01\n" +
+	"\trole_name\x18\x02 \x01(\tR\broleName2\xdc\x02\n" +
 	"\vUserService\x12)\n" +
 	"\n" +
 	"CreateUser\x12\n" +
 	".user.User\x1a\r.user.Success\"\x00\x12*\n" +
 	"\aGetUser\x12\x11.user.UserRequest\x1a\n" +
 	".user.User\"\x00\x12-\n" +
-	"\aSetRole\x12\x11.user.RoleRequest\x1a\r.user.Success\"\x00B\aZ\x05/userb\x06proto3"
+	"\aSetRole\x12\x11.user.RoleRequest\x1a\r.user.Success\"\x00\x124\n" +
+	"\x0eInactivateUser\x12\x11.user.UserRequest\x1a\r.user.Success\"\x00\x121\n" +
+	"\vRestoreUser\x12\x11.user.UserRequest\x1a\r.user.Success\"\x00\x12-\n" +
+	"\aBanUser\x12\x11.user.UserRequest\x1a\r.user.Success\"\x00\x12/\n" +
+	"\tUnbanUser\x12\x11.user.UserRequest\x1a\r.user.Success\"\x00B\aZ\x05/userb\x06proto3"
 
 var (
 	file_user_proto_rawDescOnce sync.Once
@@ -327,11 +331,19 @@ var file_user_proto_depIdxs = []int32{
 	0, // 1: user.UserService.CreateUser:input_type -> user.User
 	1, // 2: user.UserService.GetUser:input_type -> user.UserRequest
 	3, // 3: user.UserService.SetRole:input_type -> user.RoleRequest
-	2, // 4: user.UserService.CreateUser:output_type -> user.Success
-	0, // 5: user.UserService.GetUser:output_type -> user.User
-	2, // 6: user.UserService.SetRole:output_type -> user.Success
-	4, // [4:7] is the sub-list for method output_type
-	1, // [1:4] is the sub-list for method input_type
+	1, // 4: user.UserService.InactivateUser:input_type -> user.UserRequest
+	1, // 5: user.UserService.RestoreUser:input_type -> user.UserRequest
+	1, // 6: user.UserService.BanUser:input_type -> user.UserRequest
+	1, // 7: user.UserService.UnbanUser:input_type -> user.UserRequest
+	2, // 8: user.UserService.CreateUser:output_type -> user.Success
+	0, // 9: user.UserService.GetUser:output_type -> user.User
+	2, // 10: user.UserService.SetRole:output_type -> user.Success
+	2, // 11: user.UserService.InactivateUser:output_type -> user.Success
+	2, // 12: user.UserService.RestoreUser:output_type -> user.Success
+	2, // 13: user.UserService.BanUser:output_type -> user.Success
+	2, // 14: user.UserService.UnbanUser:output_type -> user.Success
+	8, // [8:15] is the sub-list for method output_type
+	1, // [1:8] is the sub-list for method input_type
 	1, // [1:1] is the sub-list for extension type_name
 	1, // [1:1] is the sub-list for extension extendee
 	0, // [0:1] is the sub-list for field type_name

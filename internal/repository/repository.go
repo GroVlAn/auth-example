@@ -2,12 +2,8 @@ package repository
 
 import (
 	"context"
-	"database/sql"
-	"errors"
-	"fmt"
 
 	"github.com/GroVlAn/auth-example/internal/core"
-	"github.com/GroVlAn/auth-example/internal/core/e"
 	"github.com/jmoiron/sqlx"
 )
 
@@ -20,6 +16,11 @@ type UserRepo interface {
 	SuperuserExist(ctx context.Context) (bool, error)
 	ExistByEmail(ctx context.Context, email string) (bool, error)
 	ExistByUsername(ctx context.Context, username string) (bool, error)
+	BanUser(ctx context.Context, userID string) error
+	UnbanUser(ctx context.Context, userID string) error
+	InactivateUser(ctx context.Context, userID string) error
+	RestoreUser(ctx context.Context, userID string) error
+	DeleteInactiveUser(ctx context.Context) error
 }
 
 type AuthRepo interface {
@@ -65,31 +66,4 @@ func (r *Repository) Auth() AuthRepo {
 
 func (r *Repository) Role() RoleRepo {
 	return r.roleRepo
-}
-
-func handleQueryError(err error, msg string) error {
-	if errors.Is(err, sql.ErrNoRows) {
-		return e.NewErrNotFound(
-			err,
-			msg,
-		)
-	}
-
-	return e.NewErrInternal(
-		err,
-	)
-}
-
-func withTx(ctx context.Context, db *sqlx.DB, fn func(*sqlx.Tx) error) error {
-	tx, err := db.BeginTxx(ctx, nil)
-	if err != nil {
-		return e.NewErrInternal(fmt.Errorf("begin tx: %w", err))
-	}
-	defer tx.Rollback()
-
-	if err := fn(tx); err != nil {
-		return err
-	}
-
-	return tx.Commit()
 }

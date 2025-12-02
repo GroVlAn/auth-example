@@ -30,48 +30,43 @@ func (h *HTTPHandler) authRoute(r chi.Router) {
 }
 
 func (h *HTTPHandler) auth(w http.ResponseWriter, r *http.Request) {
-	body := r.Body
-	defer func(body io.ReadCloser) {
-		if err := body.Close(); err != nil {
-			h.l.Error().Err(err).Msg("failed to close request body")
+	h.withBodyClose(r.Body, func(body io.ReadCloser) {
+		var authUser core.AuthUser
+
+		if err := json.NewDecoder(body).Decode(&authUser); err != nil {
+			h.handleDecodeBody(w, err)
+			return
 		}
-	}(body)
 
-	var authUser core.AuthUser
+		ctx, cancel := context.WithTimeout(r.Context(), h.DefaultTimeout)
+		defer cancel()
 
-	if err := json.NewDecoder(body).Decode(&authUser); err != nil {
-		h.handleDecodeBody(w, err)
-		return
-	}
+		rfToken, accToken, err := h.AuthService.Authenticate(ctx, authUser)
+		if err != nil {
+			status, res := h.handleError(err)
 
-	ctx, cancel := context.WithTimeout(r.Context(), h.DefaultTimeout)
-	defer cancel()
+			h.sendResponse(w, res, status)
+			return
+		}
 
-	rfToken, accToken, err := h.AuthService.Authenticate(ctx, authUser)
-	if err != nil {
-		status, res := h.handleError(err)
+		refreshTokenCookie := http.Cookie{
+			Name:     refreshCookieName,
+			Value:    rfToken.Token,
+			Expires:  rfToken.EndTTL,
+			MaxAge:   rfToken.EndTTL.Second(),
+			HttpOnly: true,
+			SameSite: http.SameSiteDefaultMode,
+		}
 
-		h.sendResponse(w, res, status)
-		return
-	}
+		http.SetCookie(w, &refreshTokenCookie)
 
-	refreshTokenCookie := http.Cookie{
-		Name:     refreshCookieName,
-		Value:    rfToken.Token,
-		Expires:  rfToken.EndTTL,
-		MaxAge:   rfToken.EndTTL.Second(),
-		HttpOnly: true,
-		SameSite: http.SameSiteDefaultMode,
-	}
+		res := core.Response{}
+		res.Data = map[string]interface{}{
+			"access_token": accToken.Token,
+		}
 
-	http.SetCookie(w, &refreshTokenCookie)
-
-	res := core.Response{}
-	res.Data = map[string]interface{}{
-		"access_token": accToken.Token,
-	}
-
-	h.sendResponse(w, res, http.StatusOK)
+		h.sendResponse(w, res, http.StatusOK)
+	})
 }
 
 func (h *HTTPHandler) verifyAccessToken(w http.ResponseWriter, r *http.Request) {

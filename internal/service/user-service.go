@@ -29,6 +29,11 @@ type userRepo interface {
 	ExistByEmail(ctx context.Context, email string) (bool, error)
 	ExistByUsername(ctx context.Context, username string) (bool, error)
 	SetRole(ctx context.Context, userID string, roleID string) error
+	BanUser(ctx context.Context, userID string) error
+	UnbanUser(ctx context.Context, userID string) error
+	InactivateUser(ctx context.Context, userID string) error
+	RestoreUser(ctx context.Context, userID string) error
+	DeleteInactiveUser(ctx context.Context) error
 }
 
 type DepsUserService struct {
@@ -112,6 +117,66 @@ func (us *userService) SetRole(ctx context.Context, userID string, roleName stri
 
 	if err := us.userRepo.SetRole(ctx, userID, role.ID); err != nil {
 		return fmt.Errorf("setting role to user: %w", err)
+	}
+
+	return nil
+}
+
+func (us *userService) InactivateUser(ctx context.Context, userReq core.UserRequest) error {
+	user, err := us.User(ctx, userReq)
+	if err != nil {
+		return fmt.Errorf("getting user: %w", err)
+	}
+
+	if err := us.userRepo.InactivateUser(ctx, user.ID); err != nil {
+		return fmt.Errorf("inactivating user: %w", err)
+	}
+
+	return nil
+}
+
+func (us *userService) RestoreUser(ctx context.Context, userReq core.UserRequest) error {
+	user, err := us.User(ctx, userReq)
+	if err != nil {
+		return fmt.Errorf("getting user: %w", err)
+	}
+
+	if err := us.userRepo.RestoreUser(ctx, user.ID); err != nil {
+		return fmt.Errorf("restoring user: %w", err)
+	}
+
+	return nil
+}
+
+func (us *userService) BanUser(ctx context.Context, userReq core.UserRequest) error {
+	user, err := us.User(ctx, userReq)
+	if err != nil {
+		return fmt.Errorf("getting user: %w", err)
+	}
+
+	if err := us.userRepo.BanUser(ctx, user.ID); err != nil {
+		return fmt.Errorf("banning user: %w", err)
+	}
+
+	return nil
+}
+
+func (us *userService) UnbanUser(ctx context.Context, userReq core.UserRequest) error {
+	user, err := us.User(ctx, userReq)
+	if err != nil {
+		return fmt.Errorf("getting user: %w", err)
+	}
+
+	if err := us.userRepo.UnbanUser(ctx, user.ID); err != nil {
+		return fmt.Errorf("unbanning user: %w", err)
+	}
+
+	return nil
+}
+
+func (us *userService) DeleteInactiveUser(ctx context.Context) error {
+	if err := us.userRepo.DeleteInactiveUser(ctx); err != nil {
+		return fmt.Errorf("deleting inactive users: %w", err)
 	}
 
 	return nil
