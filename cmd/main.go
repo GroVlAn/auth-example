@@ -130,6 +130,7 @@ func main() {
 			RoleService: gh,
 			AuthService: gh,
 		},
+		gh,
 	)
 
 	go func() {
