@@ -24,12 +24,24 @@ const (
 
 func (h *HTTPHandler) userRoute(r chi.Router) {
 	r.Post(registerEndpoint, h.register)
-	r.Get(userEndpoint, h.user)
-	r.Patch(setRoleEndpoint, h.setRole)
-	r.Patch(inactivateUserEndpoint, h.inactivateUser)
-	r.Patch(restoreUserEndpoint, h.restoreUser)
-	r.Patch(banUserEndpoint, h.banUser)
-	r.Patch(unbanUserEndpoint, h.unbanUser)
+
+	r.With(h.verifyAccToken).
+		Get(userEndpoint, h.user)
+
+	r.With(h.verifyAccToken).
+		Patch(setRoleEndpoint, h.setRole)
+
+	r.With(h.verifyAccToken).
+		Patch(inactivateUserEndpoint, h.inactivateUser)
+
+	r.With(h.verifyAccToken).
+		Patch(restoreUserEndpoint, h.restoreUser)
+
+	r.With(h.verifyAccToken).
+		Patch(banUserEndpoint, h.banUser)
+
+	r.With(h.verifyAccToken).
+		Patch(unbanUserEndpoint, h.unbanUser)
 }
 
 func (h *HTTPHandler) register(w http.ResponseWriter, r *http.Request) {

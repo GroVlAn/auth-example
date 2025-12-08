@@ -17,7 +17,6 @@ import (
 type DepsAuthService struct {
 	TokenRefreshEndTTL time.Duration
 	TokenAccessEndTTL  time.Duration
-	SecretKey          string
 }
 
 type authRepo interface {
@@ -32,12 +31,13 @@ type authRepo interface {
 }
 
 type authService struct {
-	userRepo userRepo
-	authRepo authRepo
+	userRepo  userRepo
+	authRepo  authRepo
+	secretKey string
 	DepsAuthService
 }
 
-func NewAuthService(authRepo authRepo, userRepo userRepo, deps DepsAuthService) *authService {
+func NewAuthService(authRepo authRepo, userRepo userRepo, secretKey string, deps DepsAuthService) *authService {
 	return &authService{
 		authRepo:        authRepo,
 		userRepo:        userRepo,
@@ -74,25 +74,10 @@ func (as *authService) Authenticate(ctx context.Context, authUser core.AuthUser)
 	return refreshToken, accessToken, nil
 }
 
-func (as *authService) UpdateAccessToken(ctx context.Context, rfToken string) (core.AccessToken, error) {
-	existRfToken, err := as.checkExistRefreshToken(ctx, rfToken)
-	if err != nil {
-		return core.AccessToken{}, e.NewErrUnauthorized(
-			fmt.Errorf("checking exist refresh token: %w", err),
-			"invalid token",
-		)
-	}
+func (as *authService) UpdateAccessToken(ctx context.Context) (core.AccessToken, error) {
+	tokenDetails := ctx.Value(core.RefreshTokenKey).(jwttoken.JWTDetails)
 
-	tokenDetails, err := jwttoken.ParseToken(as.SecretKey, rfToken)
-	if err != nil {
-		return core.AccessToken{}, err
-	}
-
-	if err := as.checkExpiredRefreshToken(ctx, rfToken, tokenDetails); err != nil {
-		return core.AccessToken{}, err
-	}
-
-	newToken, err := as.createAccessToken(existRfToken.ID,
+	newToken, err := as.createAccessToken(tokenDetails.RefreshTokenID,
 		core.User{
 			ID:       tokenDetails.UserID,
 			Username: tokenDetails.Login,
@@ -108,40 +93,66 @@ func (as *authService) UpdateAccessToken(ctx context.Context, rfToken string) (c
 	return newToken, nil
 }
 
-func (as *authService) VerifyAccessToken(ctx context.Context, accToken string) error {
+func (as *authService) VerifyAccessToken(ctx context.Context, accToken string) (jwttoken.JWTDetails, error) {
 	if err := as.checkExistAccessToken(ctx, accToken); err != nil {
-		return e.NewErrUnauthorized(
+		return jwttoken.JWTDetails{}, e.NewErrUnauthorized(
 			fmt.Errorf("cheking access token: %w", err),
 			"invalid token",
 		)
 	}
 
-	tokenDetails, err := jwttoken.ParseToken(as.SecretKey, accToken)
+	tokenDetails, err := jwttoken.ParseToken(as.secretKey, accToken)
 	if err != nil {
-		return err
+		return jwttoken.JWTDetails{}, err
 	}
 
 	if err := as.checkExpiredAccessToken(ctx, accToken, tokenDetails); err != nil {
-		return err
+		return jwttoken.JWTDetails{}, err
 	}
 
-	return nil
+	return jwttoken.JWTDetails{}, nil
 }
 
-func (as *authService) Logout(ctx context.Context, refreshToken, accessToken string) error {
-	if err := as.authRepo.DeleteRefreshToken(ctx, refreshToken); err != nil {
+func (as *authService) VerifyRefreshToken(ctx context.Context, rfToken string) (jwttoken.JWTDetails, error) {
+	_, err := as.checkExistRefreshToken(ctx, rfToken)
+	if err != nil {
+		return jwttoken.JWTDetails{}, e.NewErrUnauthorized(
+			fmt.Errorf("checking exist refresh token: %w", err),
+			"invalid token",
+		)
+	}
+
+	tokenDetails, err := jwttoken.ParseToken(as.secretKey, rfToken)
+	if err != nil {
+		return jwttoken.JWTDetails{}, err
+	}
+
+	if err := as.checkExpiredRefreshToken(ctx, rfToken, tokenDetails); err != nil {
+		return jwttoken.JWTDetails{}, err
+	}
+
+	return tokenDetails, nil
+}
+
+func (as *authService) Logout(ctx context.Context) error {
+	refreshToken := ctx.Value(core.RefreshTokenKey).(jwttoken.JWTDetails)
+	accessToken := ctx.Value(core.AccessTokenKey).(jwttoken.JWTDetails)
+
+	if err := as.authRepo.DeleteRefreshToken(ctx, refreshToken.Token); err != nil {
 		return fmt.Errorf("deleting refresh token: %w", err)
 	}
 
-	if err := as.authRepo.DeleteAccessToken(ctx, accessToken); err != nil {
+	if err := as.authRepo.DeleteAccessToken(ctx, accessToken.Token); err != nil {
 		return fmt.Errorf("deleting access token: %w", err)
 	}
 
 	return nil
 }
 
-func (as *authService) LogoutAllDevices(ctx context.Context, accToken string) error {
-	tokenDetails, err := jwttoken.ParseToken(as.SecretKey, accToken)
+func (as *authService) LogoutAllDevices(ctx context.Context) error {
+	accToken := ctx.Value(core.AccessTokenKey).(jwttoken.JWTDetails)
+
+	tokenDetails, err := jwttoken.ParseToken(as.secretKey, accToken.Token)
 	if err != nil {
 		return e.NewErrUnauthorized(err, "invalid access token")
 	}
@@ -180,7 +191,7 @@ func (as *authService) createRefreshToken(user core.User) (core.RefreshToken, er
 
 	jwtToken := jwt.NewWithClaims(jwt.SigningMethodHS256, payload)
 
-	t, err := jwtToken.SignedString([]byte(as.SecretKey))
+	t, err := jwtToken.SignedString([]byte(as.secretKey))
 	if err != nil {
 		return core.RefreshToken{}, e.NewErrInternal(fmt.Errorf("creating access token: %w", err))
 	}
@@ -207,7 +218,7 @@ func (as *authService) createAccessToken(rfID string, user core.User) (core.Acce
 
 	jwtToken := jwt.NewWithClaims(jwt.SigningMethodHS256, payload)
 
-	t, err := jwtToken.SignedString([]byte(as.SecretKey))
+	t, err := jwtToken.SignedString([]byte(as.secretKey))
 	if err != nil {
 		return core.AccessToken{}, e.NewErrInternal(fmt.Errorf("creating access token: %w", err))
 	}

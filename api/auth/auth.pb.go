@@ -283,12 +283,12 @@ const file_auth_proto_rawDesc = "" +
 	"\faccess_token\x18\x01 \x01(\v2\x11.auth.AccessTokenR\vaccessToken\x127\n" +
 	"\rrefresh_token\x18\x02 \x01(\v2\x12.auth.RefreshTokenR\frefreshToken\"#\n" +
 	"\aSuccess\x12\x18\n" +
-	"\asuccess\x18\x01 \x01(\bR\asuccess2\x89\x02\n" +
+	"\asuccess\x18\x01 \x01(\bR\asuccess2\x93\x02\n" +
 	"\vAuthService\x12'\n" +
-	"\x05Login\x12\x0e.auth.AuthUser\x1a\f.auth.Tokens\"\x00\x122\n" +
-	"\x11VerifyAccessToken\x12\f.auth.Tokens\x1a\r.auth.Success\"\x00\x12<\n" +
-	"\x11UpdateAccessToken\x12\x12.auth.RefreshToken\x1a\x11.auth.AccessToken\"\x00\x12'\n" +
-	"\x06Logout\x12\f.auth.Tokens\x1a\r.auth.Success\"\x00\x126\n" +
+	"\x05Login\x12\x0e.auth.AuthUser\x1a\f.auth.Tokens\"\x00\x127\n" +
+	"\x11VerifyAccessToken\x12\x11.auth.AccessToken\x1a\r.auth.Success\"\x00\x12<\n" +
+	"\x11UpdateAccessToken\x12\x12.auth.RefreshToken\x1a\x11.auth.AccessToken\"\x00\x12,\n" +
+	"\x06Logout\x12\x11.auth.AccessToken\x1a\r.auth.Success\"\x00\x126\n" +
 	"\x10LogoutAllDevices\x12\x11.auth.AccessToken\x1a\r.auth.Success\"\x00B\aZ\x05/authb\x06proto3"
 
 var (
@@ -315,9 +315,9 @@ var file_auth_proto_depIdxs = []int32{
 	2, // 0: auth.Tokens.access_token:type_name -> auth.AccessToken
 	1, // 1: auth.Tokens.refresh_token:type_name -> auth.RefreshToken
 	0, // 2: auth.AuthService.Login:input_type -> auth.AuthUser
-	3, // 3: auth.AuthService.VerifyAccessToken:input_type -> auth.Tokens
+	2, // 3: auth.AuthService.VerifyAccessToken:input_type -> auth.AccessToken
 	1, // 4: auth.AuthService.UpdateAccessToken:input_type -> auth.RefreshToken
-	3, // 5: auth.AuthService.Logout:input_type -> auth.Tokens
+	2, // 5: auth.AuthService.Logout:input_type -> auth.AccessToken
 	2, // 6: auth.AuthService.LogoutAllDevices:input_type -> auth.AccessToken
 	3, // 7: auth.AuthService.Login:output_type -> auth.Tokens
 	4, // 8: auth.AuthService.VerifyAccessToken:output_type -> auth.Success

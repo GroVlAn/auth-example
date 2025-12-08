@@ -32,6 +32,7 @@ func ParseToken(secretKey string, token string) (JWTDetails, error) {
 	}
 
 	return JWTDetails{
+		Token:          token,
 		UserID:         tokenDetails["user_id"].(string),
 		Login:          tokenDetails["login"].(string),
 		IAT:            tokenDetails["iat"].(int64),

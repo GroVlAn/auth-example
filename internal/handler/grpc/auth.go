@@ -34,11 +34,11 @@ func (h *GRPCHandler) Login(ctx context.Context, req *auth.AuthUser) (*auth.Toke
 	return tokens, nil
 }
 
-func (h *GRPCHandler) VerifyAccessToken(ctx context.Context, req *auth.Tokens) (*auth.Success, error) {
+func (h *GRPCHandler) VerifyAccessToken(ctx context.Context, req *auth.AccessToken) (*auth.Success, error) {
 	ctx, cancel := context.WithTimeout(ctx, h.DefaultTimeout)
 	defer cancel()
 
-	if err := h.AuthService.VerifyAccessToken(ctx, req.AccessToken.Token); err != nil {
+	if _, err := h.AuthService.VerifyAccessToken(ctx, req.Token); err != nil {
 		return nil, h.handleError(err)
 	}
 
@@ -48,10 +48,12 @@ func (h *GRPCHandler) VerifyAccessToken(ctx context.Context, req *auth.Tokens) (
 }
 
 func (h *GRPCHandler) UpdateAccessToken(ctx context.Context, req *auth.RefreshToken) (*auth.AccessToken, error) {
+	ctx = context.WithValue(ctx, core.RefreshTokenKey, req.Token)
+
 	ctx, cancel := context.WithTimeout(ctx, h.DefaultTimeout)
 	defer cancel()
 
-	newAccToken, err := h.AuthService.UpdateAccessToken(ctx, req.Token)
+	newAccToken, err := h.AuthService.UpdateAccessToken(ctx)
 	if err != nil {
 		return nil, h.handleError(err)
 	}
@@ -61,12 +63,13 @@ func (h *GRPCHandler) UpdateAccessToken(ctx context.Context, req *auth.RefreshTo
 	}, nil
 }
 
-func (h *GRPCHandler) Logout(ctx context.Context, req *auth.Tokens) (*auth.Success, error) {
+func (h *GRPCHandler) Logout(ctx context.Context, req *auth.AccessToken) (*auth.Success, error) {
+	ctx = context.WithValue(ctx, core.AccessTokenKey, req.Token)
+
 	ctx, cancel := context.WithTimeout(ctx, h.DefaultTimeout)
 	defer cancel()
 
-	err := h.AuthService.Logout(ctx, req.RefreshToken.Token, req.AccessToken.Token)
-	if err != nil {
+	if err := h.AuthService.Logout(ctx); err != nil {
 		return nil, h.handleError(err)
 	}
 
@@ -76,11 +79,12 @@ func (h *GRPCHandler) Logout(ctx context.Context, req *auth.Tokens) (*auth.Succe
 }
 
 func (h *GRPCHandler) LogoutAllDevices(ctx context.Context, req *auth.AccessToken) (*auth.Success, error) {
+	ctx = context.WithValue(ctx, core.AccessTokenKey, req.Token)
+
 	ctx, cancel := context.WithTimeout(ctx, h.DefaultTimeout)
 	defer cancel()
 
-	err := h.AuthService.LogoutAllDevices(ctx, req.Token)
-	if err != nil {
+	if err := h.AuthService.LogoutAllDevices(ctx); err != nil {
 		return nil, h.handleError(err)
 	}
 

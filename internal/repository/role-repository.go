@@ -74,6 +74,24 @@ func (rr *RoleRepository) Role(ctx context.Context, roleName string) (core.Role,
 	return role, nil
 }
 
+func (rr *RoleRepository) RoleByID(ctx context.Context, roleID string) (core.Role, error) {
+	query := fmt.Sprintf(
+		`SELECT id, name, description, is_default, created_at FROM %s WHERE id=$1`,
+		roleTable,
+	)
+
+	var role core.Role
+	if err := rr.db.GetContext(ctx, &role, query, roleID); err != nil {
+		if errors.Is(err, sql.ErrNoRows) {
+			return core.Role{}, e.NewErrNotFound(err, "role not found")
+		}
+
+		return core.Role{}, e.NewErrInternal(err)
+	}
+
+	return role, nil
+}
+
 func (rr *RoleRepository) CreatePermission(ctx context.Context, permission core.Permission, roleID, rpID string) error {
 	return withTx(ctx, rr.db, func(tx *sqlx.Tx) error {
 		queryFindPermission := fmt.Sprintf(

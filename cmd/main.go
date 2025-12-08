@@ -77,13 +77,19 @@ func main() {
 		HashCost:    cfg.Settings.HashCost,
 	})
 
-	s := service.New(repo.Auth(), repo.User(), repo.Role(), service.DepsAuthService{
-		TokenRefreshEndTTL: cfg.Settings.TokenRefreshEndTTL,
-		TokenAccessEndTTL:  cfg.Settings.TokenAccessEndTTL,
-		SecretKey:          cfg.Settings.SecretKey,
-	}, service.DepsUserService{
-		HashCost: cfg.Settings.HashCost,
-	})
+	s := service.New(
+		service.Repositories{
+			AuthRepo: repo.Auth(),
+			UserRepo: repo.User(),
+			RoleRepo: repo.Role(),
+		},
+		cfg.Settings.SecretKey,
+		service.DepsAuthService{
+			TokenRefreshEndTTL: cfg.Settings.TokenRefreshEndTTL,
+			TokenAccessEndTTL:  cfg.Settings.TokenAccessEndTTL,
+		}, service.DepsUserService{
+			HashCost: cfg.Settings.HashCost,
+		})
 
 	h := httpHandler.New(
 		l,

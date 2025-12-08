@@ -10,6 +10,21 @@ import (
 	"google.golang.org/grpc"
 )
 
+type middlewares interface {
+	VerifyAccessTokenInterceptor(
+		srv any,
+		ss grpc.ServerStream,
+		info *grpc.StreamServerInfo,
+		handler grpc.StreamHandler,
+	) error
+	VerifyRefreshTokenInterceptor(
+		srv any,
+		ss grpc.ServerStream,
+		info *grpc.StreamServerInfo,
+		handler grpc.StreamHandler,
+	) error
+}
+
 type Deps struct {
 	UserService user.UserServiceServer
 	AuthService auth.AuthServiceServer
@@ -21,9 +36,12 @@ type Server struct {
 	Deps
 }
 
-func New(deps Deps) *Server {
+func New(deps Deps, middlewares middlewares) *Server {
 	return &Server{
-		srv:  grpc.NewServer(),
+		srv: grpc.NewServer(
+			grpc.StreamInterceptor(middlewares.VerifyRefreshTokenInterceptor),
+			grpc.StreamInterceptor(middlewares.VerifyAccessTokenInterceptor),
+		),
 		Deps: deps,
 	}
 }

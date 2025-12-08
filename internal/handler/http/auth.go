@@ -3,13 +3,10 @@ package http_handler
 import (
 	"context"
 	"encoding/json"
-	"errors"
 	"io"
 	"net/http"
-	"strings"
 
 	"github.com/GroVlAn/auth-example/internal/core"
-	"github.com/GroVlAn/auth-example/internal/core/e"
 	"github.com/go-chi/chi"
 )
 
@@ -23,10 +20,16 @@ const (
 )
 
 func (h *HTTPHandler) authRoute(r chi.Router) {
-	r.Post(authEndpoint, h.auth)
-	r.Post(verifyEndpoint, h.verifyAccessToken)
-	r.Patch(updateEndpoint, h.updateAccessToken)
-	r.Delete(logout, h.logout)
+	r.With().Post(authEndpoint, h.auth)
+
+	r.With(h.verifyAccToken).Post(verifyEndpoint, h.verifyAccessToken)
+
+	r.With(h.verifyRefToken).Patch(updateEndpoint, h.updateAccessToken)
+
+	r.With(
+		h.verifyRefToken,
+		h.verifyAccToken,
+	).Delete(logout, h.logout)
 }
 
 func (h *HTTPHandler) auth(w http.ResponseWriter, r *http.Request) {
@@ -70,24 +73,6 @@ func (h *HTTPHandler) auth(w http.ResponseWriter, r *http.Request) {
 }
 
 func (h *HTTPHandler) verifyAccessToken(w http.ResponseWriter, r *http.Request) {
-	accToken, err := h.extractBearerToken(r)
-	if err != nil {
-		status, res := h.handleError(err)
-
-		h.sendResponse(w, res, status)
-		return
-	}
-
-	ctx, cancel := context.WithTimeout(r.Context(), h.DefaultTimeout)
-	defer cancel()
-
-	if err := h.AuthService.VerifyAccessToken(ctx, accToken); err != nil {
-		status, res := h.handleError(err)
-
-		h.sendResponse(w, res, status)
-		return
-	}
-
 	res := core.Response{}
 	res.Response = map[string]interface{}{
 		"message": "token is valid",
@@ -97,30 +82,10 @@ func (h *HTTPHandler) verifyAccessToken(w http.ResponseWriter, r *http.Request) 
 }
 
 func (h *HTTPHandler) updateAccessToken(w http.ResponseWriter, r *http.Request) {
-	cookie, err := r.Cookie(refreshCookieName)
-	if err != nil {
-		if err == http.ErrNoCookie {
-			status, res := h.handleError(e.NewErrUnauthorized(
-				errors.New("authorization header is missing"),
-				"authorization header is missing",
-			))
-
-			h.sendResponse(w, res, status)
-			return
-		}
-
-		status, res := h.handleError(err)
-
-		h.sendResponse(w, res, status)
-		return
-	}
-
-	rfToken := cookie.Value
-
 	ctx, cancel := context.WithTimeout(r.Context(), h.DefaultTimeout)
 	defer cancel()
 
-	newAccToken, err := h.AuthService.UpdateAccessToken(ctx, rfToken)
+	newAccToken, err := h.AuthService.UpdateAccessToken(ctx)
 	if err != nil {
 		status, res := h.handleError(err)
 
@@ -138,32 +103,6 @@ func (h *HTTPHandler) updateAccessToken(w http.ResponseWriter, r *http.Request) 
 }
 
 func (h *HTTPHandler) logout(w http.ResponseWriter, r *http.Request) {
-	cookie, err := r.Cookie(refreshCookieName)
-	if err != nil {
-		if err == http.ErrNoCookie {
-			status, res := h.handleError(e.NewErrUnauthorized(
-				errors.New("authorization header is missing"),
-				"authorization header is missing",
-			))
-
-			h.sendResponse(w, res, status)
-			return
-		}
-
-		status, res := h.handleError(err)
-
-		h.sendResponse(w, res, status)
-		return
-	}
-
-	accToken, err := h.extractBearerToken(r)
-	if err != nil {
-		status, res := h.handleError(err)
-
-		h.sendResponse(w, res, status)
-		return
-	}
-
 	action := chi.URLParam(r, "action")
 
 	ctx, cancel := context.WithTimeout(r.Context(), h.DefaultTimeout)
@@ -171,16 +110,16 @@ func (h *HTTPHandler) logout(w http.ResponseWriter, r *http.Request) {
 
 	switch action {
 	case "all":
-		h.logoutAllDevices(ctx, w, accToken)
+		h.logoutAllDevices(ctx, w)
 	case "current":
-		h.logoutCurrentDevice(ctx, w, cookie.Value, accToken)
+		h.logoutCurrentDevice(ctx, w)
 	default:
-		h.logoutCurrentDevice(ctx, w, cookie.Value, accToken)
+		h.logoutCurrentDevice(ctx, w)
 	}
 }
 
-func (h *HTTPHandler) logoutAllDevices(ctx context.Context, w http.ResponseWriter, accToken string) {
-	err := h.AuthService.LogoutAllDevices(ctx, accToken)
+func (h *HTTPHandler) logoutAllDevices(ctx context.Context, w http.ResponseWriter) {
+	err := h.AuthService.LogoutAllDevices(ctx)
 	if err != nil {
 		status, res := h.handleError(err)
 
@@ -196,8 +135,8 @@ func (h *HTTPHandler) logoutAllDevices(ctx context.Context, w http.ResponseWrite
 	h.sendResponse(w, res, http.StatusOK)
 }
 
-func (h *HTTPHandler) logoutCurrentDevice(ctx context.Context, w http.ResponseWriter, rfToken, accToken string) {
-	err := h.AuthService.Logout(ctx, rfToken, accToken)
+func (h *HTTPHandler) logoutCurrentDevice(ctx context.Context, w http.ResponseWriter) {
+	err := h.AuthService.Logout(ctx)
 	if err != nil {
 		status, res := h.handleError(err)
 
@@ -211,25 +150,4 @@ func (h *HTTPHandler) logoutCurrentDevice(ctx context.Context, w http.ResponseWr
 	}
 
 	h.sendResponse(w, res, http.StatusOK)
-}
-
-func (h *HTTPHandler) extractBearerToken(r *http.Request) (string, error) {
-	authHeader := r.Header.Get("Authorization")
-	if authHeader == "" {
-		return "", e.NewErrUnauthorized(
-			errors.New("authorization header is missing"),
-			"authorization header is missing",
-		)
-	}
-
-	// Разделяем заголовок по пробелу
-	parts := strings.Split(authHeader, " ")
-	if len(parts) != 2 || parts[0] != "Bearer" {
-		return "", e.NewErrUnauthorized(
-			errors.New("invalid authorization format"),
-			"invalid authorization format",
-		)
-	}
-
-	return parts[1], nil
 }

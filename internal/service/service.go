@@ -4,14 +4,16 @@ import (
 	"context"
 
 	"github.com/GroVlAn/auth-example/internal/core"
+	jwttoken "github.com/GroVlAn/auth-example/pkg/jwt-token"
 )
 
 type Authenticator interface {
 	Authenticate(ctx context.Context, authUser core.AuthUser) (core.RefreshToken, core.AccessToken, error)
-	UpdateAccessToken(ctx context.Context, rfToken string) (core.AccessToken, error)
-	VerifyAccessToken(ctx context.Context, accToken string) error
-	Logout(ctx context.Context, refreshToken, accessToken string) error
-	LogoutAllDevices(ctx context.Context, accessToken string) error
+	UpdateAccessToken(ctx context.Context) (core.AccessToken, error)
+	VerifyRefreshToken(ctx context.Context, rfToken string) (jwttoken.JWTDetails, error)
+	VerifyAccessToken(ctx context.Context, accToken string) (jwttoken.JWTDetails, error)
+	Logout(ctx context.Context) error
+	LogoutAllDevices(ctx context.Context) error
 }
 
 type UserService interface {
@@ -29,6 +31,7 @@ type RoleService interface {
 	CreateRole(ctx context.Context, role core.Role) error
 	CreatePermission(ctx context.Context, permission core.Permission, roleName string) error
 	Permissions(ctx context.Context, roleName string) ([]core.Permission, error)
+	VerifyPermission(ctx context.Context, permission string) (bool, error)
 }
 
 type Service struct {
@@ -37,11 +40,22 @@ type Service struct {
 	role RoleService
 }
 
-func New(authRepo authRepo, userRepo userRepo, roleRepo roleRepo, depsAuth DepsAuthService, depsUser DepsUserService) *Service {
+type Repositories struct {
+	AuthRepo authRepo
+	UserRepo userRepo
+	RoleRepo roleRepo
+}
+
+func New(
+	r Repositories,
+	secretKey string,
+	depsAuth DepsAuthService,
+	depsUser DepsUserService,
+) *Service {
 	return &Service{
-		auth: NewAuthService(authRepo, userRepo, depsAuth),
-		user: NewUserService(userRepo, roleRepo, depsUser),
-		role: NewRoleService(roleRepo),
+		auth: NewAuthService(r.AuthRepo, r.UserRepo, secretKey, depsAuth),
+		user: NewUserService(r.UserRepo, r.RoleRepo, depsUser),
+		role: NewRoleService(r.RoleRepo, secretKey),
 	}
 }
 

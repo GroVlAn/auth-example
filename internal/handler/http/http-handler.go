@@ -11,16 +11,18 @@ import (
 
 	"github.com/GroVlAn/auth-example/internal/core"
 	"github.com/GroVlAn/auth-example/internal/core/e"
+	jwttoken "github.com/GroVlAn/auth-example/pkg/jwt-token"
 	"github.com/go-chi/chi"
 	"github.com/rs/zerolog"
 )
 
 type authenticator interface {
 	Authenticate(ctx context.Context, authUser core.AuthUser) (core.RefreshToken, core.AccessToken, error)
-	UpdateAccessToken(ctx context.Context, rfToken string) (core.AccessToken, error)
-	VerifyAccessToken(ctx context.Context, accToken string) error
-	Logout(ctx context.Context, refreshToken, accessToken string) error
-	LogoutAllDevices(ctx context.Context, accessToken string) error
+	UpdateAccessToken(ctx context.Context) (core.AccessToken, error)
+	VerifyRefreshToken(ctx context.Context, rfToken string) (jwttoken.JWTDetails, error)
+	VerifyAccessToken(ctx context.Context, accToken string) (jwttoken.JWTDetails, error)
+	Logout(ctx context.Context) error
+	LogoutAllDevices(ctx context.Context) error
 }
 
 type userService interface {
@@ -37,6 +39,7 @@ type roleService interface {
 	CreateRole(ctx context.Context, role core.Role) error
 	CreatePermission(ctx context.Context, permission core.Permission, roleName string) error
 	Permissions(ctx context.Context, roleName string) ([]core.Permission, error)
+	VerifyPermission(ctx context.Context, permission string) (bool, error)
 }
 
 type Deps struct {
@@ -82,7 +85,7 @@ func (h *HTTPHandler) Handler() *chi.Mux {
 	r.Route(h.BasePath, func(r chi.Router) {
 		h.userRoute(r)
 		h.authRoute(r)
-		h.roleRoute(r)
+		h.roleRoute(r.With(h.verifyAccToken))
 	})
 
 	return r

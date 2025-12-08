@@ -10,6 +10,7 @@ import (
 	"github.com/GroVlAn/auth-example/api/user"
 	"github.com/GroVlAn/auth-example/internal/core"
 	"github.com/GroVlAn/auth-example/internal/core/e"
+	jwttoken "github.com/GroVlAn/auth-example/pkg/jwt-token"
 	"github.com/rs/zerolog"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
@@ -17,10 +18,11 @@ import (
 
 type authenticator interface {
 	Authenticate(ctx context.Context, authUser core.AuthUser) (core.RefreshToken, core.AccessToken, error)
-	UpdateAccessToken(ctx context.Context, rfToken string) (core.AccessToken, error)
-	VerifyAccessToken(ctx context.Context, accToken string) error
-	Logout(ctx context.Context, refreshToken, accessToken string) error
-	LogoutAllDevices(ctx context.Context, accessToken string) error
+	UpdateAccessToken(ctx context.Context) (core.AccessToken, error)
+	VerifyRefreshToken(ctx context.Context, rfToken string) (jwttoken.JWTDetails, error)
+	VerifyAccessToken(ctx context.Context, accToken string) (jwttoken.JWTDetails, error)
+	Logout(ctx context.Context) error
+	LogoutAllDevices(ctx context.Context) error
 }
 
 type userService interface {

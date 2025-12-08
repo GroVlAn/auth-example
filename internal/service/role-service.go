@@ -8,6 +8,7 @@ import (
 
 	"github.com/GroVlAn/auth-example/internal/core"
 	"github.com/GroVlAn/auth-example/internal/core/e"
+	jwttoken "github.com/GroVlAn/auth-example/pkg/jwt-token"
 	"github.com/google/uuid"
 )
 
@@ -15,17 +16,20 @@ type roleRepo interface {
 	CreateRole(ctx context.Context, role core.Role) error
 	RoleExist(ctx context.Context, roleName string) (bool, error)
 	Role(ctx context.Context, roleName string) (core.Role, error)
+	RoleByID(ctx context.Context, roleID string) (core.Role, error)
 	CreatePermission(ctx context.Context, permission core.Permission, roleID, rpID string) error
 	Permissions(ctx context.Context, roleName string) ([]core.Permission, error)
 }
 
 type roleService struct {
-	roleRepo roleRepo
+	roleRepo  roleRepo
+	secretKey string
 }
 
-func NewRoleService(roleRepo supRoleRepo) *roleService {
+func NewRoleService(roleRepo roleRepo, secretKey string) *roleService {
 	return &roleService{
-		roleRepo: roleRepo,
+		roleRepo:  roleRepo,
+		secretKey: secretKey,
 	}
 }
 
@@ -75,4 +79,36 @@ func (rs *roleService) Permissions(ctx context.Context, roleName string) ([]core
 	}
 
 	return permissions, nil
+}
+
+func (rs *roleService) VerifyPermission(ctx context.Context, permission string) (bool, error) {
+	token := ctx.Value(core.AccessTokenKey).(string)
+
+	tokenDetails, err := jwttoken.ParseToken(rs.secretKey, token)
+	if err != nil {
+		return false, e.NewErrUnauthorized(
+			fmt.Errorf("parsing access token: %w", err),
+			"invalid token",
+		)
+	}
+
+	role, err := rs.roleRepo.RoleByID(ctx, tokenDetails.RoleID)
+	if err != nil {
+		return false, fmt.Errorf("getting role by id: %w", err)
+	}
+
+	permissions, err := rs.roleRepo.Permissions(ctx, role.Name)
+	if err != nil {
+		return false, fmt.Errorf("getting permissions by role name: %w", err)
+	}
+
+	permissionsMap := make(map[string]struct{}, len(permissions))
+
+	for _, perm := range permissions {
+		permissionsMap[perm.Name] = struct{}{}
+	}
+
+	_, ok := permissionsMap[permission]
+
+	return ok, nil
 }

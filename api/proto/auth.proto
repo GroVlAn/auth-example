@@ -29,8 +29,8 @@ message Success {
 
 service AuthService {
     rpc Login (AuthUser) returns (Tokens) {};
-    rpc VerifyAccessToken (Tokens) returns (Success) {};
+    rpc VerifyAccessToken (AccessToken) returns (Success) {};
     rpc UpdateAccessToken (RefreshToken) returns (AccessToken) {};
-    rpc Logout (Tokens) returns (Success) {};
+    rpc Logout (AccessToken) returns (Success) {};
     rpc LogoutAllDevices (AccessToken) returns (Success) {};
 }

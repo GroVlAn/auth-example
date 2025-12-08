@@ -31,9 +31,9 @@ const (
 // For semantics around ctx use and closing/ending streaming RPCs, please refer to https://pkg.go.dev/google.golang.org/grpc/?tab=doc#ClientConn.NewStream.
 type AuthServiceClient interface {
 	Login(ctx context.Context, in *AuthUser, opts ...grpc.CallOption) (*Tokens, error)
-	VerifyAccessToken(ctx context.Context, in *Tokens, opts ...grpc.CallOption) (*Success, error)
+	VerifyAccessToken(ctx context.Context, in *AccessToken, opts ...grpc.CallOption) (*Success, error)
 	UpdateAccessToken(ctx context.Context, in *RefreshToken, opts ...grpc.CallOption) (*AccessToken, error)
-	Logout(ctx context.Context, in *Tokens, opts ...grpc.CallOption) (*Success, error)
+	Logout(ctx context.Context, in *AccessToken, opts ...grpc.CallOption) (*Success, error)
 	LogoutAllDevices(ctx context.Context, in *AccessToken, opts ...grpc.CallOption) (*Success, error)
 }
 
@@ -55,7 +55,7 @@ func (c *authServiceClient) Login(ctx context.Context, in *AuthUser, opts ...grp
 	return out, nil
 }
 
-func (c *authServiceClient) VerifyAccessToken(ctx context.Context, in *Tokens, opts ...grpc.CallOption) (*Success, error) {
+func (c *authServiceClient) VerifyAccessToken(ctx context.Context, in *AccessToken, opts ...grpc.CallOption) (*Success, error) {
 	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
 	out := new(Success)
 	err := c.cc.Invoke(ctx, AuthService_VerifyAccessToken_FullMethodName, in, out, cOpts...)
@@ -75,7 +75,7 @@ func (c *authServiceClient) UpdateAccessToken(ctx context.Context, in *RefreshTo
 	return out, nil
 }
 
-func (c *authServiceClient) Logout(ctx context.Context, in *Tokens, opts ...grpc.CallOption) (*Success, error) {
+func (c *authServiceClient) Logout(ctx context.Context, in *AccessToken, opts ...grpc.CallOption) (*Success, error) {
 	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
 	out := new(Success)
 	err := c.cc.Invoke(ctx, AuthService_Logout_FullMethodName, in, out, cOpts...)
@@ -100,9 +100,9 @@ func (c *authServiceClient) LogoutAllDevices(ctx context.Context, in *AccessToke
 // for forward compatibility.
 type AuthServiceServer interface {
 	Login(context.Context, *AuthUser) (*Tokens, error)
-	VerifyAccessToken(context.Context, *Tokens) (*Success, error)
+	VerifyAccessToken(context.Context, *AccessToken) (*Success, error)
 	UpdateAccessToken(context.Context, *RefreshToken) (*AccessToken, error)
-	Logout(context.Context, *Tokens) (*Success, error)
+	Logout(context.Context, *AccessToken) (*Success, error)
 	LogoutAllDevices(context.Context, *AccessToken) (*Success, error)
 	mustEmbedUnimplementedAuthServiceServer()
 }
@@ -117,13 +117,13 @@ type UnimplementedAuthServiceServer struct{}
 func (UnimplementedAuthServiceServer) Login(context.Context, *AuthUser) (*Tokens, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method Login not implemented")
 }
-func (UnimplementedAuthServiceServer) VerifyAccessToken(context.Context, *Tokens) (*Success, error) {
+func (UnimplementedAuthServiceServer) VerifyAccessToken(context.Context, *AccessToken) (*Success, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method VerifyAccessToken not implemented")
 }
 func (UnimplementedAuthServiceServer) UpdateAccessToken(context.Context, *RefreshToken) (*AccessToken, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method UpdateAccessToken not implemented")
 }
-func (UnimplementedAuthServiceServer) Logout(context.Context, *Tokens) (*Success, error) {
+func (UnimplementedAuthServiceServer) Logout(context.Context, *AccessToken) (*Success, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method Logout not implemented")
 }
 func (UnimplementedAuthServiceServer) LogoutAllDevices(context.Context, *AccessToken) (*Success, error) {
@@ -169,7 +169,7 @@ func _AuthService_Login_Handler(srv interface{}, ctx context.Context, dec func(i
 }
 
 func _AuthService_VerifyAccessToken_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
-	in := new(Tokens)
+	in := new(AccessToken)
 	if err := dec(in); err != nil {
 		return nil, err
 	}
@@ -181,7 +181,7 @@ func _AuthService_VerifyAccessToken_Handler(srv interface{}, ctx context.Context
 		FullMethod: AuthService_VerifyAccessToken_FullMethodName,
 	}
 	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
-		return srv.(AuthServiceServer).VerifyAccessToken(ctx, req.(*Tokens))
+		return srv.(AuthServiceServer).VerifyAccessToken(ctx, req.(*AccessToken))
 	}
 	return interceptor(ctx, in, info, handler)
 }
@@ -205,7 +205,7 @@ func _AuthService_UpdateAccessToken_Handler(srv interface{}, ctx context.Context
 }
 
 func _AuthService_Logout_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
-	in := new(Tokens)
+	in := new(AccessToken)
 	if err := dec(in); err != nil {
 		return nil, err
 	}
@@ -217,7 +217,7 @@ func _AuthService_Logout_Handler(srv interface{}, ctx context.Context, dec func(
 		FullMethod: AuthService_Logout_FullMethodName,
 	}
 	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
-		return srv.(AuthServiceServer).Logout(ctx, req.(*Tokens))
+		return srv.(AuthServiceServer).Logout(ctx, req.(*AccessToken))
 	}
 	return interceptor(ctx, in, info, handler)
 }
