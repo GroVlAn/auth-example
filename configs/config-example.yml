@@ -23,3 +23,7 @@ cache:
   auth_ttl: 6h
   user_ttl: 6h
   role_ttl: 10m
+
+cron:
+  duration_cron: 15d
+  timeout_delete_inactive_user: 15s

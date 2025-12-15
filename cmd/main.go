@@ -13,6 +13,7 @@ import (
 	gocache "github.com/GroVlAn/auth-example/internal/cache"
 	"github.com/GroVlAn/auth-example/internal/config"
 	"github.com/GroVlAn/auth-example/internal/core/e"
+	"github.com/GroVlAn/auth-example/internal/cron"
 	"github.com/GroVlAn/auth-example/internal/database"
 	grpcHandler "github.com/GroVlAn/auth-example/internal/handler/grpc"
 	httpHandler "github.com/GroVlAn/auth-example/internal/handler/http"
@@ -142,6 +143,16 @@ func main() {
 		gh,
 	)
 
+	cr, err := cron.New(l, s.User())
+	if err != nil {
+		l.Fatal().Err(err).Msg("failed create cron")
+	}
+
+	err = cr.DeleteInactiveUser(ctx, cfg.Cron.DurationCron, cfg.Cron.TimeoutDeleteInactiveUser)
+	if err != nil {
+		l.Fatal().Err(err).Msg("failed create job for delete inactive user")
+	}
+
 	go func() {
 		if err := hServer.ListenAndServe(); err != nil && err != http.ErrServerClosed {
 			l.Fatal().Err(err).Msg("Failed to start server")
@@ -161,6 +172,10 @@ func main() {
 		createSuperuser(ctx, l, cfg, preloader)
 	}()
 
+	go func() {
+		cr.Start()
+	}()
+
 	l.Info().Msgf("server start on port: %s load time: %v", cfg.HTTP.Port, time.Since(timeStart))
 
 	<-ctx.Done()
@@ -169,6 +184,9 @@ func main() {
 		l.Fatal().Err(err).Msg("failed to shutdown server")
 	} else {
 		l.Info().Msg("server shutdown gracefully")
+	}
+	if err := cr.Shutdown(); err != nil {
+		l.Fatal().Err(err).Msg("failed to shutdown cron")
 	}
 	gServer.Stop()
 }

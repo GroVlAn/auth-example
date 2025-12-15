@@ -52,12 +52,18 @@ type Cache struct {
 	RoleTTL           time.Duration `yaml:"role_ttl"`
 }
 
+type Cron struct {
+	DurationCron              time.Duration `yaml:"duration_cron"`
+	TimeoutDeleteInactiveUser time.Duration `yaml:"timeout_delete_inactive_user"`
+}
+
 type Config struct {
 	HTTP      HTTP             `yaml:"http"`
 	GRPC      GRPC             `yaml:"grpc"`
 	DB        PostgresSettings `yaml:"db"`
 	Settings  Settings         `yaml:"settings"`
 	Cache     Cache            `yaml:"cache"`
+	Cron      Cron             `yaml:"cron"`
 	Superuser Superuser
 }
 
