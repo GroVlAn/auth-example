@@ -17,6 +17,8 @@ import (
 type DepsAuthService struct {
 	TokenRefreshEndTTL time.Duration
 	TokenAccessEndTTL  time.Duration
+	CacheTTL           time.Duration
+	SecretKey          string
 }
 
 type authRepo interface {
@@ -31,16 +33,17 @@ type authRepo interface {
 }
 
 type authService struct {
-	userRepo  userRepo
-	authRepo  authRepo
-	secretKey string
+	userRepo userRepo
+	authRepo authRepo
+	cache    cache
 	DepsAuthService
 }
 
-func NewAuthService(authRepo authRepo, userRepo userRepo, secretKey string, deps DepsAuthService) *authService {
+func NewAuthService(authRepo authRepo, userRepo userRepo, cache cache, deps DepsAuthService) *authService {
 	return &authService{
 		authRepo:        authRepo,
 		userRepo:        userRepo,
+		cache:           cache,
 		DepsAuthService: deps,
 	}
 }
@@ -101,7 +104,7 @@ func (as *authService) VerifyAccessToken(ctx context.Context, accToken string) (
 		)
 	}
 
-	tokenDetails, err := jwttoken.ParseToken(as.secretKey, accToken)
+	tokenDetails, err := jwttoken.ParseToken(as.SecretKey, accToken)
 	if err != nil {
 		return jwttoken.JWTDetails{}, err
 	}
@@ -122,7 +125,7 @@ func (as *authService) VerifyRefreshToken(ctx context.Context, rfToken string) (
 		)
 	}
 
-	tokenDetails, err := jwttoken.ParseToken(as.secretKey, rfToken)
+	tokenDetails, err := jwttoken.ParseToken(as.SecretKey, rfToken)
 	if err != nil {
 		return jwttoken.JWTDetails{}, err
 	}
@@ -152,7 +155,7 @@ func (as *authService) Logout(ctx context.Context) error {
 func (as *authService) LogoutAllDevices(ctx context.Context) error {
 	accToken := ctx.Value(core.AccessTokenKey).(jwttoken.JWTDetails)
 
-	tokenDetails, err := jwttoken.ParseToken(as.secretKey, accToken.Token)
+	tokenDetails, err := jwttoken.ParseToken(as.SecretKey, accToken.Token)
 	if err != nil {
 		return e.NewErrUnauthorized(err, "invalid access token")
 	}
@@ -170,11 +173,56 @@ func (as *authService) LogoutAllDevices(ctx context.Context) error {
 
 func (as *authService) user(ctx context.Context, authUser core.AuthUser) (core.User, error) {
 	switch {
-	case authUser.Username != "":
-		return as.userRepo.GetByUsername(ctx, authUser.Username)
+	case len(authUser.Username) > 0:
+		return as.getUserByUsername(ctx, authUser.Username)
+	case len(authUser.Email) > 0:
+		return as.getUserByEmail(ctx, authUser.Email)
 	default:
-		return as.userRepo.GetByEmail(ctx, authUser.Email)
+		err := e.NewErrValidation("validate authenticate user")
+		err.AddField("username and email", "username or email require")
+
+		return core.User{}, err
 	}
+}
+
+func (as *authService) getUserByUsername(ctx context.Context, username string) (core.User, error) {
+	cacheKey := core.CachePrefixUserByUsername.CreateCacheKey(username)
+
+	if id, ok := as.cache.Get(cacheKey); ok {
+		return as.getCachedUserByID(id.(string)), nil
+	}
+
+	user, err := as.userRepo.GetByUsername(ctx, username)
+	if err != nil {
+		return core.User{}, fmt.Errorf("getting user by username: %w", err)
+	}
+
+	return user, nil
+}
+
+func (as *authService) getUserByEmail(ctx context.Context, email string) (core.User, error) {
+	cacheKey := core.CachePrefixUserByUsername.CreateCacheKey(email)
+
+	if id, ok := as.cache.Get(cacheKey); ok {
+		return as.getCachedUserByID(id.(string)), nil
+	}
+
+	user, err := as.userRepo.GetByEmail(ctx, email)
+	if err != nil {
+		return core.User{}, fmt.Errorf("getting user by email: %w", err)
+	}
+
+	return user, nil
+}
+
+func (as *authService) getCachedUserByID(id string) core.User {
+	cacheKey := core.CachePrefixUserByID.CreateCacheKey(id)
+
+	if user, ok := as.cache.Get(cacheKey); ok {
+		return user.(core.User)
+	}
+
+	return core.User{}
 }
 
 func (as *authService) createRefreshToken(user core.User) (core.RefreshToken, error) {
@@ -191,7 +239,7 @@ func (as *authService) createRefreshToken(user core.User) (core.RefreshToken, er
 
 	jwtToken := jwt.NewWithClaims(jwt.SigningMethodHS256, payload)
 
-	t, err := jwtToken.SignedString([]byte(as.secretKey))
+	t, err := jwtToken.SignedString([]byte(as.SecretKey))
 	if err != nil {
 		return core.RefreshToken{}, e.NewErrInternal(fmt.Errorf("creating access token: %w", err))
 	}
@@ -218,7 +266,7 @@ func (as *authService) createAccessToken(rfID string, user core.User) (core.Acce
 
 	jwtToken := jwt.NewWithClaims(jwt.SigningMethodHS256, payload)
 
-	t, err := jwtToken.SignedString([]byte(as.secretKey))
+	t, err := jwtToken.SignedString([]byte(as.SecretKey))
 	if err != nil {
 		return core.AccessToken{}, e.NewErrInternal(fmt.Errorf("creating access token: %w", err))
 	}

@@ -10,6 +10,7 @@ import (
 	"syscall"
 	"time"
 
+	gocache "github.com/GroVlAn/auth-example/internal/cache"
 	"github.com/GroVlAn/auth-example/internal/config"
 	"github.com/GroVlAn/auth-example/internal/core/e"
 	"github.com/GroVlAn/auth-example/internal/database"
@@ -77,19 +78,27 @@ func main() {
 		HashCost:    cfg.Settings.HashCost,
 	})
 
+	cache := gocache.New(cfg.Cache.DefaultExpiration, cfg.Cache.CleanupInterval)
+
 	s := service.New(
 		service.Repositories{
 			AuthRepo: repo.Auth(),
 			UserRepo: repo.User(),
 			RoleRepo: repo.Role(),
 		},
-		cfg.Settings.SecretKey,
+		cache,
 		service.DepsAuthService{
 			TokenRefreshEndTTL: cfg.Settings.TokenRefreshEndTTL,
 			TokenAccessEndTTL:  cfg.Settings.TokenAccessEndTTL,
+			CacheTTL:           cfg.Cache.AuthTTL,
 		}, service.DepsUserService{
 			HashCost: cfg.Settings.HashCost,
-		})
+			CacheTTL: cfg.Cache.UserTTL,
+		},
+		service.RoleDeps{
+			CacheTTL: cfg.Cache.RoleTTL,
+		},
+	)
 
 	h := httpHandler.New(
 		l,

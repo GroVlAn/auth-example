@@ -4,6 +4,8 @@ go 1.25.1
 
 require google.golang.org/grpc v1.76.0
 
+require github.com/patrickmn/go-cache v2.1.0+incompatible // indirect
+
 require (
 	github.com/BurntSushi/toml v1.2.1 // indirect
 	github.com/go-chi/chi v1.5.5 // indirect

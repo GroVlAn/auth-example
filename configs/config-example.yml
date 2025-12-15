@@ -16,3 +16,10 @@ db:
   host: 'user_db'
   port: 5432
   ssl_mode: disable
+
+cache:
+  default_expiration: 5m
+  cleanup_interval: 15m
+  auth_ttl: 6h
+  user_ttl: 6h
+  role_ttl: 10m

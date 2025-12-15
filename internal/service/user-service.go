@@ -38,18 +38,26 @@ type userRepo interface {
 
 type DepsUserService struct {
 	HashCost int
+	CacheTTL time.Duration
 }
 
 type userService struct {
 	userRepo userRepo
 	roleRepo userRoleRepo
+	cache    cache
 	DepsUserService
 }
 
-func NewUserService(userRepo userRepo, roleRepo userRoleRepo, deps DepsUserService) *userService {
+func NewUserService(
+	userRepo userRepo,
+	roleRepo userRoleRepo,
+	cache cache,
+	deps DepsUserService,
+) *userService {
 	return &userService{
 		userRepo:        userRepo,
 		roleRepo:        roleRepo,
+		cache:           cache,
 		DepsUserService: deps,
 	}
 }
@@ -91,7 +99,13 @@ func (us *userService) CreateUser(ctx context.Context, user core.User) error {
 
 	user.CreatedAt = time.Now()
 
-	return us.userRepo.Create(ctx, user)
+	if err = us.userRepo.Create(ctx, user); err != nil {
+		return fmt.Errorf("creating user: %w", err)
+	}
+
+	us.userCache(user)
+
+	return nil
 }
 
 func (us *userService) User(ctx context.Context, userReq core.UserRequest) (core.User, error) {
@@ -101,11 +115,11 @@ func (us *userService) User(ctx context.Context, userReq core.UserRequest) (core
 
 	switch {
 	case userReq.ID != "":
-		return us.userRepo.GetByID(ctx, userReq.ID)
+		return us.getUserByID(ctx, userReq.ID)
 	case userReq.Username != "":
-		return us.userRepo.GetByUsername(ctx, userReq.Username)
+		return us.getUserByUsername(ctx, userReq.Username)
 	default:
-		return us.userRepo.GetByEmail(ctx, userReq.Email)
+		return us.getUserByEmail(ctx, userReq.Email)
 	}
 }
 
@@ -118,6 +132,16 @@ func (us *userService) SetRole(ctx context.Context, userID string, roleName stri
 	if err := us.userRepo.SetRole(ctx, userID, role.ID); err != nil {
 		return fmt.Errorf("setting role to user: %w", err)
 	}
+
+	user, err := us.User(ctx, core.UserRequest{
+		ID: userID,
+	})
+	if err != nil {
+		return fmt.Errorf("getting user: %w", err)
+	}
+
+	us.deleteUserCache(user)
+	us.userCache(user)
 
 	return nil
 }
@@ -132,6 +156,8 @@ func (us *userService) InactivateUser(ctx context.Context, userReq core.UserRequ
 		return fmt.Errorf("inactivating user: %w", err)
 	}
 
+	us.deleteUserCache(user)
+
 	return nil
 }
 
@@ -144,6 +170,9 @@ func (us *userService) RestoreUser(ctx context.Context, userReq core.UserRequest
 	if err := us.userRepo.RestoreUser(ctx, user.ID); err != nil {
 		return fmt.Errorf("restoring user: %w", err)
 	}
+
+	us.deleteUserCache(user)
+	us.userCache(user)
 
 	return nil
 }
@@ -158,6 +187,8 @@ func (us *userService) BanUser(ctx context.Context, userReq core.UserRequest) er
 		return fmt.Errorf("banning user: %w", err)
 	}
 
+	us.deleteUserCache(user)
+
 	return nil
 }
 
@@ -171,6 +202,9 @@ func (us *userService) UnbanUser(ctx context.Context, userReq core.UserRequest) 
 		return fmt.Errorf("unbanning user: %w", err)
 	}
 
+	us.deleteUserCache(user)
+	us.userCache(user)
+
 	return nil
 }
 
@@ -178,6 +212,10 @@ func (us *userService) DeleteInactiveUser(ctx context.Context) error {
 	if err := us.userRepo.DeleteInactiveUser(ctx); err != nil {
 		return fmt.Errorf("deleting inactive users: %w", err)
 	}
+
+	us.cache.DeleteByPrefix(string(core.CachePrefixUserByID))
+	us.cache.DeleteByPrefix(string(core.CachePrefixUserByUsername))
+	us.cache.DeleteByPrefix(string(core.CachePrefixUserByEmail))
 
 	return nil
 }
@@ -195,4 +233,77 @@ func (us *userService) validateUserRequest(userReq core.UserRequest) *e.ErrValid
 
 	return err
 
+}
+
+func (us *userService) getUserByID(ctx context.Context, id string) (core.User, error) {
+	cacheKey := core.CachePrefixUserByID.CreateCacheKey(id)
+
+	if user, ok := us.cache.Get(cacheKey); ok {
+		return user.(core.User), nil
+	}
+
+	user, err := us.userRepo.GetByID(ctx, id)
+	if err != nil {
+		return core.User{}, fmt.Errorf("getting user by id: %w", err)
+	}
+
+	return user, nil
+}
+
+func (us *userService) getUserByUsername(ctx context.Context, username string) (core.User, error) {
+	cacheKey := core.CachePrefixUserByUsername.CreateCacheKey(username)
+
+	if id, ok := us.cache.Get(cacheKey); ok {
+		return us.getUserByID(ctx, id.(string))
+	}
+
+	user, err := us.userRepo.GetByUsername(ctx, username)
+	if err != nil {
+		return core.User{}, fmt.Errorf("getting user by username: %w", err)
+	}
+
+	return user, nil
+}
+
+func (us *userService) getUserByEmail(ctx context.Context, email string) (core.User, error) {
+	cacheKey := core.CachePrefixUserByEmail.CreateCacheKey(email)
+
+	if id, ok := us.cache.Get(cacheKey); ok {
+		return us.getUserByID(ctx, id.(string))
+	}
+
+	user, err := us.userRepo.GetByUsername(ctx, email)
+	if err != nil {
+		return core.User{}, fmt.Errorf("getting user by email: %w", err)
+	}
+
+	return user, nil
+}
+
+func (us *userService) userCache(user core.User) {
+	us.cache.Set(
+		core.CachePrefixUserByID.CreateCacheKey(user.ID),
+		user,
+		us.CacheTTL,
+	)
+
+	us.cache.Set(
+		core.CachePrefixUserByUsername.CreateCacheKey(user.Username),
+		user.ID,
+		us.CacheTTL,
+	)
+
+	us.cache.Set(
+		core.CachePrefixUserByEmail.CreateCacheKey(user.Email),
+		user.ID,
+		us.CacheTTL,
+	)
+}
+
+func (us *userService) deleteUserCache(user core.User) {
+	us.cache.Delete(core.CachePrefixUserByID.CreateCacheKey(user.ID))
+
+	us.cache.Delete(core.CachePrefixUserByUsername.CreateCacheKey(user.Username))
+
+	us.cache.Delete(core.CachePrefixUserByEmail.CreateCacheKey(user.Email))
 }

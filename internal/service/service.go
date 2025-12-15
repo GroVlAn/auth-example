@@ -2,6 +2,7 @@ package service
 
 import (
 	"context"
+	"time"
 
 	"github.com/GroVlAn/auth-example/internal/core"
 	jwttoken "github.com/GroVlAn/auth-example/pkg/jwt-token"
@@ -34,6 +35,13 @@ type RoleService interface {
 	VerifyPermission(ctx context.Context, permission string) (bool, error)
 }
 
+type cache interface {
+	Get(key string) (any, bool)
+	Set(key string, value any, ttl time.Duration)
+	Delete(key string)
+	DeleteByPrefix(prefix string)
+}
+
 type Service struct {
 	auth Authenticator
 	user UserService
@@ -48,14 +56,15 @@ type Repositories struct {
 
 func New(
 	r Repositories,
-	secretKey string,
+	cache cache,
 	depsAuth DepsAuthService,
 	depsUser DepsUserService,
+	roleDeps RoleDeps,
 ) *Service {
 	return &Service{
-		auth: NewAuthService(r.AuthRepo, r.UserRepo, secretKey, depsAuth),
-		user: NewUserService(r.UserRepo, r.RoleRepo, depsUser),
-		role: NewRoleService(r.RoleRepo, secretKey),
+		auth: NewAuthService(r.AuthRepo, r.UserRepo, cache, depsAuth),
+		user: NewUserService(r.UserRepo, r.RoleRepo, cache, depsUser),
+		role: NewRoleService(r.RoleRepo, cache, roleDeps),
 	}
 }
 

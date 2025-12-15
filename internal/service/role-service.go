@@ -21,15 +21,22 @@ type roleRepo interface {
 	Permissions(ctx context.Context, roleName string) ([]core.Permission, error)
 }
 
-type roleService struct {
-	roleRepo  roleRepo
+type RoleDeps struct {
+	CacheTTL  time.Duration
 	secretKey string
 }
 
-func NewRoleService(roleRepo roleRepo, secretKey string) *roleService {
+type roleService struct {
+	roleRepo roleRepo
+	cache    cache
+	RoleDeps
+}
+
+func NewRoleService(roleRepo roleRepo, cache cache, roleDeps RoleDeps) *roleService {
 	return &roleService{
-		roleRepo:  roleRepo,
-		secretKey: secretKey,
+		roleRepo: roleRepo,
+		cache:    cache,
+		RoleDeps: roleDeps,
 	}
 }
 
@@ -69,6 +76,10 @@ func (rs *roleService) CreatePermission(ctx context.Context, permission core.Per
 		return fmt.Errorf("creating permission: %w", err)
 	}
 
+	rs.cache.Delete(
+		core.CachePrefixPermission.CreateCacheKey(role.ID),
+	)
+
 	return nil
 }
 
@@ -92,6 +103,14 @@ func (rs *roleService) VerifyPermission(ctx context.Context, permission string) 
 		)
 	}
 
+	cacheKey := core.CachePrefixPermission.CreateCacheKey(tokenDetails.RoleID)
+
+	if perm, ok := rs.cache.Get(cacheKey); ok {
+		_, exist := perm.(map[string]struct{})[permission]
+
+		return exist, nil
+	}
+
 	role, err := rs.roleRepo.RoleByID(ctx, tokenDetails.RoleID)
 	if err != nil {
 		return false, fmt.Errorf("getting role by id: %w", err)
@@ -108,7 +127,13 @@ func (rs *roleService) VerifyPermission(ctx context.Context, permission string) 
 		permissionsMap[perm.Name] = struct{}{}
 	}
 
-	_, ok := permissionsMap[permission]
+	rs.cache.Set(
+		core.CachePrefixPermission.CreateCacheKey(role.ID),
+		permissionsMap,
+		rs.CacheTTL,
+	)
 
-	return ok, nil
+	_, exist := permissionsMap[permission]
+
+	return exist, nil
 }

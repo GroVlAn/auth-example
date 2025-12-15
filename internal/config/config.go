@@ -44,11 +44,20 @@ type Superuser struct {
 	Role     string `env:"SUPERUSER_ROLE" envDefault:"admin"`
 }
 
+type Cache struct {
+	DefaultExpiration time.Duration `yaml:"default_expiration"`
+	CleanupInterval   time.Duration `yaml:"cleanup_interval"`
+	AuthTTL           time.Duration `yaml:"auth_ttl"`
+	UserTTL           time.Duration `yaml:"user_ttl"`
+	RoleTTL           time.Duration `yaml:"role_ttl"`
+}
+
 type Config struct {
 	HTTP      HTTP             `yaml:"http"`
 	GRPC      GRPC             `yaml:"grpc"`
 	DB        PostgresSettings `yaml:"db"`
 	Settings  Settings         `yaml:"settings"`
+	Cache     Cache            `yaml:"cache"`
 	Superuser Superuser
 }
 
