@@ -74,31 +74,35 @@ func main() {
 
 	repo := repository.New(db)
 
-	preloader := service.NewRoleLoader(repo.Role(), repo.User(), service.PreloaderDeps{
-		DefRolePath: *roleConfigPath,
-		HashCost:    cfg.Settings.HashCost,
-	})
+	preloader := service.NewRoleLoader(
+		repo.Role(),
+		repo.User(),
+		service.PreloaderDeps{
+			DefRolePath: *roleConfigPath,
+			HashCost:    cfg.Settings.HashCost,
+		})
 
 	cache := gocache.New(cfg.Cache.DefaultExpiration, cfg.Cache.CleanupInterval)
 
 	s := service.New(
-		service.Repositories{
+		service.WithRepositories(service.Repositories{
 			AuthRepo: repo.Auth(),
 			UserRepo: repo.User(),
 			RoleRepo: repo.Role(),
-		},
-		cache,
-		service.DepsAuthService{
+		}),
+		service.WithCache(cache),
+		service.WithAuthDeps(service.AuthDeps{
 			TokenRefreshEndTTL: cfg.Settings.TokenRefreshEndTTL,
 			TokenAccessEndTTL:  cfg.Settings.TokenAccessEndTTL,
 			CacheTTL:           cfg.Cache.AuthTTL,
-		}, service.DepsUserService{
+		}),
+		service.WithUserDeps(service.UserDeps{
 			HashCost: cfg.Settings.HashCost,
 			CacheTTL: cfg.Cache.UserTTL,
-		},
-		service.RoleDeps{
+		}),
+		service.WithRoleDeps(service.RoleDeps{
 			CacheTTL: cfg.Cache.RoleTTL,
-		},
+		}),
 	)
 
 	h := httpHandler.New(
