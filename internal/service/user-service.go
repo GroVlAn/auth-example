@@ -36,7 +36,7 @@ type userRepo interface {
 	DeleteInactiveUser(ctx context.Context) error
 }
 
-type DepsUserService struct {
+type UserDeps struct {
 	HashCost int
 	CacheTTL time.Duration
 }
@@ -45,20 +45,20 @@ type userService struct {
 	userRepo userRepo
 	roleRepo userRoleRepo
 	cache    cache
-	DepsUserService
+	UserDeps
 }
 
 func NewUserService(
 	userRepo userRepo,
 	roleRepo userRoleRepo,
 	cache cache,
-	deps DepsUserService,
+	deps UserDeps,
 ) *userService {
 	return &userService{
-		userRepo:        userRepo,
-		roleRepo:        roleRepo,
-		cache:           cache,
-		DepsUserService: deps,
+		userRepo: userRepo,
+		roleRepo: roleRepo,
+		cache:    cache,
+		UserDeps: deps,
 	}
 }
 
@@ -272,7 +272,7 @@ func (us *userService) getUserByEmail(ctx context.Context, email string) (core.U
 		return us.getUserByID(ctx, id.(string))
 	}
 
-	user, err := us.userRepo.GetByUsername(ctx, email)
+	user, err := us.userRepo.GetByEmail(ctx, email)
 	if err != nil {
 		return core.User{}, fmt.Errorf("getting user by email: %w", err)
 	}

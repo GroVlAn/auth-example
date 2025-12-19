@@ -42,30 +42,36 @@ type cache interface {
 	DeleteByPrefix(prefix string)
 }
 
-type Service struct {
-	auth Authenticator
-	user UserService
-	role RoleService
-}
-
 type Repositories struct {
 	AuthRepo authRepo
 	UserRepo userRepo
 	RoleRepo roleRepo
 }
 
+type Service struct {
+	auth     Authenticator
+	user     UserService
+	role     RoleService
+	cache    cache
+	authDeps AuthDeps
+	userDeps UserDeps
+	roleDeps RoleDeps
+	Repositories
+}
+
 func New(
-	r Repositories,
-	cache cache,
-	depsAuth DepsAuthService,
-	depsUser DepsUserService,
-	roleDeps RoleDeps,
+	opts ...Option,
 ) *Service {
-	return &Service{
-		auth: NewAuthService(r.AuthRepo, r.UserRepo, cache, depsAuth),
-		user: NewUserService(r.UserRepo, r.RoleRepo, cache, depsUser),
-		role: NewRoleService(r.RoleRepo, cache, roleDeps),
+	s := &Service{}
+	for _, opt := range opts {
+		opt(s)
 	}
+
+	s.auth = NewAuthService(s.AuthRepo, s.UserRepo, s.cache, s.authDeps)
+	s.user = NewUserService(s.UserRepo, s.RoleRepo, s.cache, s.userDeps)
+	s.role = NewRoleService(s.RoleRepo, s.cache, s.roleDeps)
+
+	return s
 }
 
 func (s *Service) Auth() Authenticator {

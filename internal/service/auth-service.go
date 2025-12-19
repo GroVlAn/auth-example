@@ -14,7 +14,7 @@ import (
 	"golang.org/x/crypto/bcrypt"
 )
 
-type DepsAuthService struct {
+type AuthDeps struct {
 	TokenRefreshEndTTL time.Duration
 	TokenAccessEndTTL  time.Duration
 	CacheTTL           time.Duration
@@ -36,15 +36,15 @@ type authService struct {
 	userRepo userRepo
 	authRepo authRepo
 	cache    cache
-	DepsAuthService
+	AuthDeps
 }
 
-func NewAuthService(authRepo authRepo, userRepo userRepo, cache cache, deps DepsAuthService) *authService {
+func NewAuthService(authRepo authRepo, userRepo userRepo, cache cache, deps AuthDeps) *authService {
 	return &authService{
-		authRepo:        authRepo,
-		userRepo:        userRepo,
-		cache:           cache,
-		DepsAuthService: deps,
+		authRepo: authRepo,
+		userRepo: userRepo,
+		cache:    cache,
+		AuthDeps: deps,
 	}
 }
 
@@ -106,14 +106,14 @@ func (as *authService) VerifyAccessToken(ctx context.Context, accToken string) (
 
 	tokenDetails, err := jwttoken.ParseToken(as.SecretKey, accToken)
 	if err != nil {
-		return jwttoken.JWTDetails{}, err
+		return jwttoken.JWTDetails{}, fmt.Errorf("parsing token: %w", err)
 	}
 
 	if err := as.checkExpiredAccessToken(ctx, accToken, tokenDetails); err != nil {
-		return jwttoken.JWTDetails{}, err
+		return jwttoken.JWTDetails{}, fmt.Errorf("checking expired token: %w", err)
 	}
 
-	return jwttoken.JWTDetails{}, nil
+	return tokenDetails, nil
 }
 
 func (as *authService) VerifyRefreshToken(ctx context.Context, rfToken string) (jwttoken.JWTDetails, error) {
