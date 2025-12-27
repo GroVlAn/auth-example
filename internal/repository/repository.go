@@ -40,7 +40,7 @@ type RoleRepo interface {
 	Role(ctx context.Context, roleName string) (core.Role, error)
 	RoleByID(ctx context.Context, roleID string) (core.Role, error)
 	CreatePermission(ctx context.Context, permission core.Permission, roleID, rpID string) error
-	Permissions(ctx context.Context, roleName string) ([]core.Permission, error)
+	Permissions(ctx context.Context, roleID string) ([]core.Permission, error)
 }
 
 type Repository struct {

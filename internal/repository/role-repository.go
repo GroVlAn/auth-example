@@ -125,18 +125,17 @@ func (rr *RoleRepository) CreatePermission(ctx context.Context, permission core.
 	})
 }
 
-func (rr *RoleRepository) Permissions(ctx context.Context, roleName string) ([]core.Permission, error) {
+func (rr *RoleRepository) Permissions(ctx context.Context, roleID string) ([]core.Permission, error) {
 	query := fmt.Sprintf(
 		`SELECT p.id, p.name, p.description, p.is_default, p.created_at FROM %s p
-		JOIN %s rp ON p.id == rp.permission_id WHERE rp.role_id = (SELECT id FROM %s WHERE name=$1)`,
+		JOIN %s rp ON p.id == rp.permission_id WHERE rp.role_id = $1`,
 		permissionTable,
-		rolePermissionTable,
 		roleTable,
 	)
 
 	var permissions []core.Permission
 
-	err := rr.db.SelectContext(ctx, &permissions, query, roleName)
+	err := rr.db.SelectContext(ctx, &permissions, query, roleID)
 	if errors.Is(err, sql.ErrNoRows) {
 		return nil, e.NewErrNotFound(
 			fmt.Errorf("getting permissions: %w", err),

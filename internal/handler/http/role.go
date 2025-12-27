@@ -70,12 +70,12 @@ func (h *HTTPHandler) createPermission(w http.ResponseWriter, r *http.Request) {
 }
 
 func (h *HTTPHandler) permissions(w http.ResponseWriter, r *http.Request) {
-	roleName := chi.URLParam(r, "role_name")
+	roleID := chi.URLParam(r, "role_id")
 
 	ctx, cancel := context.WithTimeout(r.Context(), h.DefaultTimeout)
 	defer cancel()
 
-	permissions, err := h.RoleService.Permissions(ctx, roleName)
+	permissions, err := h.RoleService.Permissions(ctx, roleID)
 	if err != nil {
 		status, res := h.handleError(err)
 

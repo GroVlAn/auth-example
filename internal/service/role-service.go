@@ -18,7 +18,7 @@ type roleRepo interface {
 	Role(ctx context.Context, roleName string) (core.Role, error)
 	RoleByID(ctx context.Context, roleID string) (core.Role, error)
 	CreatePermission(ctx context.Context, permission core.Permission, roleID, rpID string) error
-	Permissions(ctx context.Context, roleName string) ([]core.Permission, error)
+	Permissions(ctx context.Context, roleID string) ([]core.Permission, error)
 }
 
 type roleCache interface {
@@ -86,8 +86,8 @@ func (rs *roleService) CreatePermission(ctx context.Context, permission core.Per
 	return nil
 }
 
-func (rs *roleService) Permissions(ctx context.Context, roleName string) ([]core.Permission, error) {
-	permissions, err := rs.roleRepo.Permissions(ctx, roleName)
+func (rs *roleService) Permissions(ctx context.Context, roleID string) ([]core.Permission, error) {
+	permissions, err := rs.roleRepo.Permissions(ctx, roleID)
 	if err != nil {
 		return nil, fmt.Errorf("getting permissions by role name: %w", err)
 	}
@@ -112,12 +112,7 @@ func (rs *roleService) VerifyPermission(ctx context.Context, permission string) 
 		return exist, nil
 	}
 
-	role, err := rs.roleRepo.RoleByID(ctx, tokenDetails.RoleID)
-	if err != nil {
-		return false, fmt.Errorf("getting role by id: %w", err)
-	}
-
-	permissions, err := rs.roleRepo.Permissions(ctx, role.Name)
+	permissions, err := rs.roleRepo.Permissions(ctx, tokenDetails.RoleID)
 	if err != nil {
 		return false, fmt.Errorf("getting permissions by role name: %w", err)
 	}
@@ -129,7 +124,7 @@ func (rs *roleService) VerifyPermission(ctx context.Context, permission string) 
 	}
 
 	rs.cache.SetPermissions(
-		role.ID,
+		tokenDetails.RoleID,
 		permissionsMap,
 	)
 
