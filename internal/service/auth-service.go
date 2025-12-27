@@ -17,7 +17,6 @@ import (
 type AuthDeps struct {
 	TokenRefreshEndTTL time.Duration
 	TokenAccessEndTTL  time.Duration
-	CacheTTL           time.Duration
 	SecretKey          string
 }
 
@@ -35,11 +34,11 @@ type authRepo interface {
 type authService struct {
 	userRepo userRepo
 	authRepo authRepo
-	cache    cache
+	cache    userCache
 	AuthDeps
 }
 
-func NewAuthService(authRepo authRepo, userRepo userRepo, cache cache, deps AuthDeps) *authService {
+func NewAuthService(authRepo authRepo, userRepo userRepo, cache userCache, deps AuthDeps) *authService {
 	return &authService{
 		authRepo: authRepo,
 		userRepo: userRepo,
@@ -186,10 +185,8 @@ func (as *authService) user(ctx context.Context, authUser core.AuthUser) (core.U
 }
 
 func (as *authService) getUserByUsername(ctx context.Context, username string) (core.User, error) {
-	cacheKey := core.CachePrefixUserByUsername.CreateCacheKey(username)
-
-	if id, ok := as.cache.Get(cacheKey); ok {
-		return as.getCachedUserByID(id.(string)), nil
+	if user, ok := as.cache.GetUserByUsername(username); ok {
+		return user, nil
 	}
 
 	user, err := as.userRepo.GetByUsername(ctx, username)
@@ -201,10 +198,8 @@ func (as *authService) getUserByUsername(ctx context.Context, username string) (
 }
 
 func (as *authService) getUserByEmail(ctx context.Context, email string) (core.User, error) {
-	cacheKey := core.CachePrefixUserByUsername.CreateCacheKey(email)
-
-	if id, ok := as.cache.Get(cacheKey); ok {
-		return as.getCachedUserByID(id.(string)), nil
+	if user, ok := as.cache.GetUserByEmail(email); ok {
+		return user, nil
 	}
 
 	user, err := as.userRepo.GetByEmail(ctx, email)
@@ -213,16 +208,6 @@ func (as *authService) getUserByEmail(ctx context.Context, email string) (core.U
 	}
 
 	return user, nil
-}
-
-func (as *authService) getCachedUserByID(id string) core.User {
-	cacheKey := core.CachePrefixUserByID.CreateCacheKey(id)
-
-	if user, ok := as.cache.Get(cacheKey); ok {
-		return user.(core.User)
-	}
-
-	return core.User{}
 }
 
 func (as *authService) createRefreshToken(user core.User) (core.RefreshToken, error) {

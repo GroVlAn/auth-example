@@ -21,18 +21,23 @@ type roleRepo interface {
 	Permissions(ctx context.Context, roleName string) ([]core.Permission, error)
 }
 
+type roleCache interface {
+	SetPermissions(roleID string, permissions map[string]struct{})
+	GetPermissions(roleID string) (map[string]struct{}, bool)
+	DeletePermissions(roleID string)
+}
+
 type RoleDeps struct {
-	CacheTTL  time.Duration
-	secretKey string
+	SecretKey string
 }
 
 type roleService struct {
 	roleRepo roleRepo
-	cache    cache
+	cache    roleCache
 	RoleDeps
 }
 
-func NewRoleService(roleRepo roleRepo, cache cache, roleDeps RoleDeps) *roleService {
+func NewRoleService(roleRepo roleRepo, cache roleCache, roleDeps RoleDeps) *roleService {
 	return &roleService{
 		roleRepo: roleRepo,
 		cache:    cache,
@@ -76,9 +81,7 @@ func (rs *roleService) CreatePermission(ctx context.Context, permission core.Per
 		return fmt.Errorf("creating permission: %w", err)
 	}
 
-	rs.cache.Delete(
-		core.CachePrefixPermission.CreateCacheKey(role.ID),
-	)
+	rs.cache.DeletePermissions(role.ID)
 
 	return nil
 }
@@ -95,7 +98,7 @@ func (rs *roleService) Permissions(ctx context.Context, roleName string) ([]core
 func (rs *roleService) VerifyPermission(ctx context.Context, permission string) (bool, error) {
 	token := ctx.Value(core.AccessTokenKey).(string)
 
-	tokenDetails, err := jwttoken.ParseToken(rs.secretKey, token)
+	tokenDetails, err := jwttoken.ParseToken(rs.SecretKey, token)
 	if err != nil {
 		return false, e.NewErrUnauthorized(
 			fmt.Errorf("parsing access token: %w", err),
@@ -103,10 +106,8 @@ func (rs *roleService) VerifyPermission(ctx context.Context, permission string) 
 		)
 	}
 
-	cacheKey := core.CachePrefixPermission.CreateCacheKey(tokenDetails.RoleID)
-
-	if perm, ok := rs.cache.Get(cacheKey); ok {
-		_, exist := perm.(map[string]struct{})[permission]
+	if perm, ok := rs.cache.GetPermissions(tokenDetails.RoleID); ok {
+		_, exist := perm[permission]
 
 		return exist, nil
 	}
@@ -127,10 +128,9 @@ func (rs *roleService) VerifyPermission(ctx context.Context, permission string) 
 		permissionsMap[perm.Name] = struct{}{}
 	}
 
-	rs.cache.Set(
-		core.CachePrefixPermission.CreateCacheKey(role.ID),
+	rs.cache.SetPermissions(
+		role.ID,
 		permissionsMap,
-		rs.CacheTTL,
 	)
 
 	_, exist := permissionsMap[permission]

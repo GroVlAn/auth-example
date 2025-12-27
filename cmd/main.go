@@ -84,24 +84,29 @@ func main() {
 
 	cache := gocache.New(cfg.Cache.DefaultExpiration, cfg.Cache.CleanupInterval)
 
+	userCache := gocache.NewUserCache(cache, cfg.Cache.UserTTL)
+	roleCache := gocache.NewRoleCache(cache, cfg.Cache.RoleTTL)
+
 	s := service.New(
 		service.WithRepositories(service.Repositories{
 			AuthRepo: repo.Auth(),
 			UserRepo: repo.User(),
 			RoleRepo: repo.Role(),
 		}),
-		service.WithCache(cache),
+		service.WithCache(service.Cache{
+			UserCache: userCache,
+			RoleCache: roleCache,
+		}),
 		service.WithAuthDeps(service.AuthDeps{
 			TokenRefreshEndTTL: cfg.Settings.TokenRefreshEndTTL,
 			TokenAccessEndTTL:  cfg.Settings.TokenAccessEndTTL,
-			CacheTTL:           cfg.Cache.AuthTTL,
+			SecretKey:          cfg.Settings.SecretKey,
 		}),
 		service.WithUserDeps(service.UserDeps{
 			HashCost: cfg.Settings.HashCost,
-			CacheTTL: cfg.Cache.UserTTL,
 		}),
 		service.WithRoleDeps(service.RoleDeps{
-			CacheTTL: cfg.Cache.RoleTTL,
+			SecretKey: cfg.Settings.SecretKey,
 		}),
 	)
 

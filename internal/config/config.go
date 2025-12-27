@@ -47,7 +47,6 @@ type Superuser struct {
 type Cache struct {
 	DefaultExpiration time.Duration `yaml:"default_expiration"`
 	CleanupInterval   time.Duration `yaml:"cleanup_interval"`
-	AuthTTL           time.Duration `yaml:"auth_ttl"`
 	UserTTL           time.Duration `yaml:"user_ttl"`
 	RoleTTL           time.Duration `yaml:"role_ttl"`
 }

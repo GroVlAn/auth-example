@@ -8,7 +8,7 @@ func WithRepositories(reps Repositories) Option {
 	}
 }
 
-func WithCache(cache cache) Option {
+func WithCache(cache Cache) Option {
 	return func(srv *Service) {
 		srv.cache = cache
 	}

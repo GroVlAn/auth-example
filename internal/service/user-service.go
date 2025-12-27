@@ -36,22 +36,30 @@ type userRepo interface {
 	DeleteInactiveUser(ctx context.Context) error
 }
 
+type userCache interface {
+	SetUser(user core.User)
+	GetUserByID(id string) (core.User, bool)
+	GetUserByUsername(username string) (core.User, bool)
+	GetUserByEmail(email string) (core.User, bool)
+	DeleteUser(user core.User)
+	ClearUsers()
+}
+
 type UserDeps struct {
 	HashCost int
-	CacheTTL time.Duration
 }
 
 type userService struct {
 	userRepo userRepo
 	roleRepo userRoleRepo
-	cache    cache
+	cache    userCache
 	UserDeps
 }
 
 func NewUserService(
 	userRepo userRepo,
 	roleRepo userRoleRepo,
-	cache cache,
+	cache userCache,
 	deps UserDeps,
 ) *userService {
 	return &userService{
@@ -103,7 +111,7 @@ func (us *userService) CreateUser(ctx context.Context, user core.User) error {
 		return fmt.Errorf("creating user: %w", err)
 	}
 
-	us.userCache(user)
+	us.cache.SetUser(user)
 
 	return nil
 }
@@ -140,8 +148,8 @@ func (us *userService) SetRole(ctx context.Context, userID string, roleName stri
 		return fmt.Errorf("getting user: %w", err)
 	}
 
-	us.deleteUserCache(user)
-	us.userCache(user)
+	us.cache.DeleteUser(user)
+	us.cache.SetUser(user)
 
 	return nil
 }
@@ -156,7 +164,7 @@ func (us *userService) InactivateUser(ctx context.Context, userReq core.UserRequ
 		return fmt.Errorf("inactivating user: %w", err)
 	}
 
-	us.deleteUserCache(user)
+	us.cache.DeleteUser(user)
 
 	return nil
 }
@@ -171,8 +179,7 @@ func (us *userService) RestoreUser(ctx context.Context, userReq core.UserRequest
 		return fmt.Errorf("restoring user: %w", err)
 	}
 
-	us.deleteUserCache(user)
-	us.userCache(user)
+	us.cache.SetUser(user)
 
 	return nil
 }
@@ -187,7 +194,7 @@ func (us *userService) BanUser(ctx context.Context, userReq core.UserRequest) er
 		return fmt.Errorf("banning user: %w", err)
 	}
 
-	us.deleteUserCache(user)
+	us.cache.DeleteUser(user)
 
 	return nil
 }
@@ -202,8 +209,7 @@ func (us *userService) UnbanUser(ctx context.Context, userReq core.UserRequest) 
 		return fmt.Errorf("unbanning user: %w", err)
 	}
 
-	us.deleteUserCache(user)
-	us.userCache(user)
+	us.cache.SetUser(user)
 
 	return nil
 }
@@ -213,9 +219,7 @@ func (us *userService) DeleteInactiveUser(ctx context.Context) error {
 		return fmt.Errorf("deleting inactive users: %w", err)
 	}
 
-	us.cache.DeleteByPrefix(string(core.CachePrefixUserByID))
-	us.cache.DeleteByPrefix(string(core.CachePrefixUserByUsername))
-	us.cache.DeleteByPrefix(string(core.CachePrefixUserByEmail))
+	us.cache.ClearUsers()
 
 	return nil
 }
@@ -236,10 +240,8 @@ func (us *userService) validateUserRequest(userReq core.UserRequest) *e.ErrValid
 }
 
 func (us *userService) getUserByID(ctx context.Context, id string) (core.User, error) {
-	cacheKey := core.CachePrefixUserByID.CreateCacheKey(id)
-
-	if user, ok := us.cache.Get(cacheKey); ok {
-		return user.(core.User), nil
+	if user, ok := us.cache.GetUserByID(id); ok {
+		return user, nil
 	}
 
 	user, err := us.userRepo.GetByID(ctx, id)
@@ -251,10 +253,8 @@ func (us *userService) getUserByID(ctx context.Context, id string) (core.User, e
 }
 
 func (us *userService) getUserByUsername(ctx context.Context, username string) (core.User, error) {
-	cacheKey := core.CachePrefixUserByUsername.CreateCacheKey(username)
-
-	if id, ok := us.cache.Get(cacheKey); ok {
-		return us.getUserByID(ctx, id.(string))
+	if user, ok := us.cache.GetUserByUsername(username); ok {
+		return user, nil
 	}
 
 	user, err := us.userRepo.GetByUsername(ctx, username)
@@ -266,10 +266,8 @@ func (us *userService) getUserByUsername(ctx context.Context, username string) (
 }
 
 func (us *userService) getUserByEmail(ctx context.Context, email string) (core.User, error) {
-	cacheKey := core.CachePrefixUserByEmail.CreateCacheKey(email)
-
-	if id, ok := us.cache.Get(cacheKey); ok {
-		return us.getUserByID(ctx, id.(string))
+	if user, ok := us.cache.GetUserByEmail(email); ok {
+		return user, nil
 	}
 
 	user, err := us.userRepo.GetByEmail(ctx, email)
@@ -278,32 +276,4 @@ func (us *userService) getUserByEmail(ctx context.Context, email string) (core.U
 	}
 
 	return user, nil
-}
-
-func (us *userService) userCache(user core.User) {
-	us.cache.Set(
-		core.CachePrefixUserByID.CreateCacheKey(user.ID),
-		user,
-		us.CacheTTL,
-	)
-
-	us.cache.Set(
-		core.CachePrefixUserByUsername.CreateCacheKey(user.Username),
-		user.ID,
-		us.CacheTTL,
-	)
-
-	us.cache.Set(
-		core.CachePrefixUserByEmail.CreateCacheKey(user.Email),
-		user.ID,
-		us.CacheTTL,
-	)
-}
-
-func (us *userService) deleteUserCache(user core.User) {
-	us.cache.Delete(core.CachePrefixUserByID.CreateCacheKey(user.ID))
-
-	us.cache.Delete(core.CachePrefixUserByUsername.CreateCacheKey(user.Username))
-
-	us.cache.Delete(core.CachePrefixUserByEmail.CreateCacheKey(user.Email))
 }
