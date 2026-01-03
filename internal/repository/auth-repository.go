@@ -15,17 +15,17 @@ const (
 	tableAccessRefreshToken = "access_refresh_token"
 )
 
-type authRepository struct {
+type AuthRepository struct {
 	db *sqlx.DB
 }
 
-func NewAuthRepository(db *sqlx.DB) *authRepository {
-	return &authRepository{
+func NewAuthRepository(db *sqlx.DB) *AuthRepository {
+	return &AuthRepository{
 		db: db,
 	}
 }
 
-func (ur *authRepository) CreateTokens(
+func (ur *AuthRepository) CreateTokens(
 	ctx context.Context,
 	accToken core.AccessToken,
 	rfToken core.RefreshToken,
@@ -76,7 +76,7 @@ func (ur *authRepository) CreateTokens(
 	})
 }
 
-func (ur *authRepository) CreateAccessToken(ctx context.Context, token core.AccessToken) error {
+func (ur *AuthRepository) CreateAccessToken(ctx context.Context, token core.AccessToken) error {
 	query := fmt.Sprintf(
 		"INSERT INTO %s (id, token, start_ttl, end_ttl, user_id) VALUES (:id, :token, :start_ttl, :end_ttl, :user_id)",
 		tableAccessToken,
@@ -92,7 +92,7 @@ func (ur *authRepository) CreateAccessToken(ctx context.Context, token core.Acce
 	return nil
 }
 
-func (ur *authRepository) AccessToken(ctx context.Context, token string) (core.AccessToken, error) {
+func (ur *AuthRepository) AccessToken(ctx context.Context, token string) (core.AccessToken, error) {
 	query := fmt.Sprintf(
 		"SELECT id, token, start_ttl, end_ttl, user_id FROM %s WHERE token = $1",
 		tableAccessToken,
@@ -111,7 +111,7 @@ func (ur *authRepository) AccessToken(ctx context.Context, token string) (core.A
 	return accessToken, nil
 }
 
-func (ur *authRepository) DeleteAllAccessTokens(ctx context.Context, userID string) error {
+func (ur *AuthRepository) DeleteAllAccessTokens(ctx context.Context, userID string) error {
 	queryDeleteAllTokens := fmt.Sprintf(
 		"DELETE FROM %s WHERE user_id = $1",
 		tableAccessToken,
@@ -126,7 +126,7 @@ func (ur *authRepository) DeleteAllAccessTokens(ctx context.Context, userID stri
 	return nil
 }
 
-func (ur *authRepository) DeleteAccessToken(ctx context.Context, token string) error {
+func (ur *AuthRepository) DeleteAccessToken(ctx context.Context, token string) error {
 	queryDeleteAccessToken := fmt.Sprintf(
 		"DELETE FROM %s WHERE token = $1",
 		tableAccessToken,
@@ -141,7 +141,7 @@ func (ur *authRepository) DeleteAccessToken(ctx context.Context, token string) e
 	return nil
 }
 
-func (ur *authRepository) RefreshToken(ctx context.Context, token string) (core.RefreshToken, error) {
+func (ur *AuthRepository) RefreshToken(ctx context.Context, token string) (core.RefreshToken, error) {
 	query := fmt.Sprintf(
 		"SELECT * FROM %s WHERE token = $1",
 		tableRefreshToken,
@@ -160,7 +160,7 @@ func (ur *authRepository) RefreshToken(ctx context.Context, token string) (core.
 	return refreshToken, nil
 }
 
-func (ur *authRepository) DeleteAllRefreshTokens(ctx context.Context, userID string) error {
+func (ur *AuthRepository) DeleteAllRefreshTokens(ctx context.Context, userID string) error {
 	queryDeleteAllTokens := fmt.Sprintf(
 		"DELETE FROM %s WHERE user_id = $1",
 		tableRefreshToken,
@@ -175,7 +175,7 @@ func (ur *authRepository) DeleteAllRefreshTokens(ctx context.Context, userID str
 	return nil
 }
 
-func (ur *authRepository) DeleteRefreshToken(ctx context.Context, token string) error {
+func (ur *AuthRepository) DeleteRefreshToken(ctx context.Context, token string) error {
 	queryDeleteRefreshToken := fmt.Sprintf(
 		"DELETE FROM %s WHERE token = $1",
 		tableRefreshToken,

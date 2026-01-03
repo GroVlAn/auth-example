@@ -72,11 +72,13 @@ func main() {
 		}
 	}()
 
-	repo := repository.New(db)
+	authRepo := repository.NewAuthRepository(db)
+	userRepo := repository.NewUserRepository(db)
+	roleRepo := repository.NewRoleRepository(db)
 
 	preloader := service.NewRoleLoader(
-		repo.Role(),
-		repo.User(),
+		roleRepo,
+		userRepo,
 		service.PreloaderDeps{
 			DefRolePath: *roleConfigPath,
 			HashCost:    cfg.Settings.HashCost,
@@ -87,35 +89,34 @@ func main() {
 	userCache := gocache.NewUserCache(cache, cfg.Cache.UserTTL)
 	roleCache := gocache.NewRoleCache(cache, cfg.Cache.RoleTTL)
 
-	s := service.New(
-		service.WithRepositories(service.Repositories{
-			AuthRepo: repo.Auth(),
-			UserRepo: repo.User(),
-			RoleRepo: repo.Role(),
-		}),
-		service.WithCache(service.Cache{
-			UserCache: userCache,
-			RoleCache: roleCache,
-		}),
-		service.WithAuthDeps(service.AuthDeps{
+	authService := service.NewAuthService(
+		authRepo,
+		userRepo,
+		userCache,
+		service.AuthDeps{
 			TokenRefreshEndTTL: cfg.Settings.TokenRefreshEndTTL,
 			TokenAccessEndTTL:  cfg.Settings.TokenAccessEndTTL,
 			SecretKey:          cfg.Settings.SecretKey,
-		}),
-		service.WithUserDeps(service.UserDeps{
-			HashCost: cfg.Settings.HashCost,
-		}),
-		service.WithRoleDeps(service.RoleDeps{
-			SecretKey: cfg.Settings.SecretKey,
-		}),
+		},
 	)
+
+	userService := service.NewUserService(
+		userRepo,
+		roleRepo,
+		userCache,
+		service.UserDeps{
+			HashCost: cfg.Settings.HashCost,
+		},
+	)
+
+	roleService := service.NewRoleService(roleRepo, roleCache)
 
 	h := httpHandler.New(
 		l,
 		httpHandler.Services{
-			UserService: s.User(),
-			AuthService: s.Auth(),
-			RoleService: s.Role(),
+			UserService: userService,
+			AuthService: authService,
+			RoleService: roleService,
 		},
 		httpHandler.Deps{
 			BasePath:       cfg.HTTP.BaseHTTPPath,
@@ -125,9 +126,9 @@ func main() {
 	gh := grpcHandler.New(
 		l,
 		grpcHandler.Services{
-			UserService: s.User(),
-			AuthService: s.Auth(),
-			RoleService: s.Role(),
+			UserService: userService,
+			AuthService: authService,
+			RoleService: roleService,
 		},
 		grpcHandler.Deps{
 			DefaultTimeout: cfg.Settings.DefaultTimeout,
@@ -152,7 +153,7 @@ func main() {
 		gh,
 	)
 
-	cr, err := cron.New(l, s.User())
+	cr, err := cron.New(l, userService)
 	if err != nil {
 		l.Fatal().Err(err).Msg("failed create cron")
 	}

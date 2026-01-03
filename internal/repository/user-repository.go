@@ -15,17 +15,17 @@ const (
 	userTable = "auth_user"
 )
 
-type userRepository struct {
+type UserRepository struct {
 	db *sqlx.DB
 }
 
-func NewUserRepository(db *sqlx.DB) *userRepository {
-	return &userRepository{
+func NewUserRepository(db *sqlx.DB) *UserRepository {
+	return &UserRepository{
 		db: db,
 	}
 }
 
-func (ur *userRepository) Create(ctx context.Context, user core.User) error {
+func (ur *UserRepository) Create(ctx context.Context, user core.User) error {
 	query := fmt.Sprintf(
 		`INSERT INTO %s (id, username, email, password_hash, fullname, is_superuser, 
 		created_at) VALUES (:id, :username, :email, :password_hash, :fullname, :is_superuser,
@@ -43,7 +43,7 @@ func (ur *userRepository) Create(ctx context.Context, user core.User) error {
 	return nil
 }
 
-func (ur *userRepository) SetRole(ctx context.Context, userID string, roleID string) error {
+func (ur *UserRepository) SetRole(ctx context.Context, userID string, roleID string) error {
 	query := fmt.Sprintf(
 		`UPDATE %s SET role_id=$1 WHERE id=$2`,
 		userTable,
@@ -57,7 +57,7 @@ func (ur *userRepository) SetRole(ctx context.Context, userID string, roleID str
 	return nil
 }
 
-func (ur *userRepository) IsSuperuser(ctx context.Context, userID string) (bool, error) {
+func (ur *UserRepository) IsSuperuser(ctx context.Context, userID string) (bool, error) {
 	query := fmt.Sprintf(
 		`SELECT id FROM %s WHERE id=$1 AND is_superuser=true`,
 		userTable,
@@ -73,7 +73,7 @@ func (ur *userRepository) IsSuperuser(ctx context.Context, userID string) (bool,
 	return true, nil
 }
 
-func (ur *userRepository) SuperuserExist(ctx context.Context) (bool, error) {
+func (ur *UserRepository) SuperuserExist(ctx context.Context) (bool, error) {
 	query := fmt.Sprintf(
 		`SELECT EXISTS(SELECT 1 FROM %s WHERE is_superuser=true)`,
 		userTable,
@@ -87,7 +87,7 @@ func (ur *userRepository) SuperuserExist(ctx context.Context) (bool, error) {
 	return exist, nil
 }
 
-func (ur *userRepository) GetByEmail(ctx context.Context, email string) (core.User, error) {
+func (ur *UserRepository) GetByEmail(ctx context.Context, email string) (core.User, error) {
 	query := fmt.Sprintf(
 		`SELECT id, username, email, password_hash, fullname, created_at FROM %s
 		WHERE email = $1`,
@@ -106,7 +106,7 @@ func (ur *userRepository) GetByEmail(ctx context.Context, email string) (core.Us
 	return user, nil
 }
 
-func (ur *userRepository) GetByUsername(ctx context.Context, username string) (core.User, error) {
+func (ur *UserRepository) GetByUsername(ctx context.Context, username string) (core.User, error) {
 	query := fmt.Sprintf(
 		`SELECT id, username, email, password_hash, fullname, created_at FROM %s
 		WHERE username = $1`,
@@ -125,7 +125,7 @@ func (ur *userRepository) GetByUsername(ctx context.Context, username string) (c
 	return user, nil
 }
 
-func (ur *userRepository) GetByID(ctx context.Context, id string) (core.User, error) {
+func (ur *UserRepository) GetByID(ctx context.Context, id string) (core.User, error) {
 	query := fmt.Sprintf(
 		`SELECT id, username, email, password_hash, fullname, created_at FROM %s 
 		WHERE id = $1`,
@@ -144,7 +144,7 @@ func (ur *userRepository) GetByID(ctx context.Context, id string) (core.User, er
 	return user, nil
 }
 
-func (ur *userRepository) ExistByEmail(ctx context.Context, email string) (bool, error) {
+func (ur *UserRepository) ExistByEmail(ctx context.Context, email string) (bool, error) {
 	query := fmt.Sprintf(
 		`SELECT EXISTS(SELECT 1 FROM %s WHERE email = $1)`,
 		userTable,
@@ -161,7 +161,7 @@ func (ur *userRepository) ExistByEmail(ctx context.Context, email string) (bool,
 	return exists, nil
 }
 
-func (ur *userRepository) ExistByUsername(ctx context.Context, username string) (bool, error) {
+func (ur *UserRepository) ExistByUsername(ctx context.Context, username string) (bool, error) {
 	query := fmt.Sprintf(
 		`SELECT EXISTS(SELECT 1 FROM %s WHERE username = $1)`,
 		userTable,
@@ -178,7 +178,7 @@ func (ur *userRepository) ExistByUsername(ctx context.Context, username string) 
 	return exists, nil
 }
 
-func (ur *userRepository) BanUser(ctx context.Context, userID string) error {
+func (ur *UserRepository) BanUser(ctx context.Context, userID string) error {
 	query := fmt.Sprintf(
 		`UPDATE %s SET is_banned=true WHERE id=$1`,
 		userTable,
@@ -191,7 +191,7 @@ func (ur *userRepository) BanUser(ctx context.Context, userID string) error {
 	return nil
 }
 
-func (ur *userRepository) UnbanUser(ctx context.Context, userID string) error {
+func (ur *UserRepository) UnbanUser(ctx context.Context, userID string) error {
 	query := fmt.Sprintf(
 		`UPDATE %s SET is_banned=false WHERE id=$1`,
 		userTable,
@@ -204,7 +204,7 @@ func (ur *userRepository) UnbanUser(ctx context.Context, userID string) error {
 	return nil
 }
 
-func (ur *userRepository) InactivateUser(ctx context.Context, userID string) error {
+func (ur *UserRepository) InactivateUser(ctx context.Context, userID string) error {
 	query := fmt.Sprintf(
 		`UPDATE %s SET is_active=false WHERE id=$1`,
 		userTable,
@@ -217,7 +217,7 @@ func (ur *userRepository) InactivateUser(ctx context.Context, userID string) err
 	return nil
 }
 
-func (ur *userRepository) RestoreUser(ctx context.Context, userID string) error {
+func (ur *UserRepository) RestoreUser(ctx context.Context, userID string) error {
 	query := fmt.Sprintf(
 		`UPDATE %s SET is_active=true WHERE id=$1`,
 		userTable,
@@ -230,7 +230,7 @@ func (ur *userRepository) RestoreUser(ctx context.Context, userID string) error 
 	return nil
 }
 
-func (ur *userRepository) DeleteInactiveUser(ctx context.Context) error {
+func (ur *UserRepository) DeleteInactiveUser(ctx context.Context) error {
 	query := fmt.Sprintf(
 		`DELETE FROM %s WHERE is_active=false`,
 		userTable,

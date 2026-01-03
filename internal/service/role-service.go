@@ -27,25 +27,19 @@ type roleCache interface {
 	DeletePermissions(roleID string)
 }
 
-type RoleDeps struct {
-	SecretKey string
-}
-
-type roleService struct {
+type RoleService struct {
 	roleRepo roleRepo
 	cache    roleCache
-	RoleDeps
 }
 
-func NewRoleService(roleRepo roleRepo, cache roleCache, roleDeps RoleDeps) *roleService {
-	return &roleService{
+func NewRoleService(roleRepo roleRepo, cache roleCache) *RoleService {
+	return &RoleService{
 		roleRepo: roleRepo,
 		cache:    cache,
-		RoleDeps: roleDeps,
 	}
 }
 
-func (rs *roleService) CreateRole(ctx context.Context, role core.Role) error {
+func (rs *RoleService) CreateRole(ctx context.Context, role core.Role) error {
 	existedRole, err := rs.roleRepo.RoleExist(ctx, role.Name)
 	if err != nil {
 		return fmt.Errorf("getting existed role: %w", err)
@@ -67,7 +61,7 @@ func (rs *roleService) CreateRole(ctx context.Context, role core.Role) error {
 	return nil
 }
 
-func (rs *roleService) CreatePermission(ctx context.Context, permission core.Permission, roleName string) error {
+func (rs *RoleService) CreatePermission(ctx context.Context, permission core.Permission, roleName string) error {
 	role, err := rs.roleRepo.Role(ctx, roleName)
 	if err != nil {
 		return fmt.Errorf("getting role by name: %w", err)
@@ -86,7 +80,7 @@ func (rs *roleService) CreatePermission(ctx context.Context, permission core.Per
 	return nil
 }
 
-func (rs *roleService) Permissions(ctx context.Context, roleID string) ([]core.Permission, error) {
+func (rs *RoleService) Permissions(ctx context.Context, roleID string) ([]core.Permission, error) {
 	permissions, err := rs.roleRepo.Permissions(ctx, roleID)
 	if err != nil {
 		return nil, fmt.Errorf("getting permissions by role name: %w", err)
@@ -95,24 +89,14 @@ func (rs *roleService) Permissions(ctx context.Context, roleID string) ([]core.P
 	return permissions, nil
 }
 
-func (rs *roleService) VerifyPermission(ctx context.Context, permission string) (bool, error) {
-	token := ctx.Value(core.AccessTokenKey).(string)
-
-	tokenDetails, err := jwttoken.ParseToken(rs.SecretKey, token)
-	if err != nil {
-		return false, e.NewErrUnauthorized(
-			fmt.Errorf("parsing access token: %w", err),
-			"invalid token",
-		)
-	}
-
-	if perm, ok := rs.cache.GetPermissions(tokenDetails.RoleID); ok {
+func (rs *RoleService) VerifyPermission(ctx context.Context, accToken jwttoken.JWTDetails, permission string) (bool, error) {
+	if perm, ok := rs.cache.GetPermissions(accToken.RoleID); ok {
 		_, exist := perm[permission]
 
 		return exist, nil
 	}
 
-	permissions, err := rs.roleRepo.Permissions(ctx, tokenDetails.RoleID)
+	permissions, err := rs.roleRepo.Permissions(ctx, accToken.RoleID)
 	if err != nil {
 		return false, fmt.Errorf("getting permissions by role name: %w", err)
 	}
@@ -124,7 +108,7 @@ func (rs *roleService) VerifyPermission(ctx context.Context, permission string) 
 	}
 
 	rs.cache.SetPermissions(
-		tokenDetails.RoleID,
+		accToken.RoleID,
 		permissionsMap,
 	)
 

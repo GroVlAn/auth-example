@@ -5,6 +5,7 @@ import (
 
 	"github.com/GroVlAn/auth-example/api/auth"
 	"github.com/GroVlAn/auth-example/internal/core"
+	jwttoken "github.com/GroVlAn/auth-example/pkg/jwt-token"
 )
 
 func (h *GRPCHandler) Login(ctx context.Context, req *auth.AuthUser) (*auth.Tokens, error) {
@@ -53,7 +54,12 @@ func (h *GRPCHandler) UpdateAccessToken(ctx context.Context, req *auth.RefreshTo
 	ctx, cancel := context.WithTimeout(ctx, h.DefaultTimeout)
 	defer cancel()
 
-	newAccToken, err := h.AuthService.UpdateAccessToken(ctx)
+	refToken, ok := ctx.Value(core.RefreshTokenKey).(jwttoken.JWTDetails)
+	if !ok {
+		return nil, h.sendInternalError("context does not store refresh token")
+	}
+
+	newAccToken, err := h.AuthService.UpdateAccessToken(ctx, refToken)
 	if err != nil {
 		return nil, h.handleError(err)
 	}
@@ -69,7 +75,17 @@ func (h *GRPCHandler) Logout(ctx context.Context, req *auth.AccessToken) (*auth.
 	ctx, cancel := context.WithTimeout(ctx, h.DefaultTimeout)
 	defer cancel()
 
-	if err := h.AuthService.Logout(ctx); err != nil {
+	refToken, ok := ctx.Value(core.RefreshTokenKey).(jwttoken.JWTDetails)
+	if !ok {
+		return nil, h.sendInternalError("context does not store refresh token")
+	}
+
+	accToken, ok := ctx.Value(core.AccessTokenKey).(jwttoken.JWTDetails)
+	if !ok {
+		return nil, h.sendInternalError("context does not store access token")
+	}
+
+	if err := h.AuthService.Logout(ctx, refToken, accToken); err != nil {
 		return nil, h.handleError(err)
 	}
 
@@ -84,7 +100,12 @@ func (h *GRPCHandler) LogoutAllDevices(ctx context.Context, req *auth.AccessToke
 	ctx, cancel := context.WithTimeout(ctx, h.DefaultTimeout)
 	defer cancel()
 
-	if err := h.AuthService.LogoutAllDevices(ctx); err != nil {
+	accToken, ok := ctx.Value(core.AccessTokenKey).(jwttoken.JWTDetails)
+	if !ok {
+		return nil, h.sendInternalError("context does not store access token")
+	}
+
+	if err := h.AuthService.LogoutAllDevices(ctx, accToken); err != nil {
 		return nil, h.handleError(err)
 	}
 

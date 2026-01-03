@@ -7,6 +7,7 @@ import (
 
 	"github.com/GroVlAn/auth-example/internal/core"
 	"github.com/GroVlAn/auth-example/internal/core/e"
+	"github.com/go-chi/chi"
 )
 
 func (h *HTTPHandler) Cors(next http.Handler) http.Handler {
@@ -82,4 +83,8 @@ func (h *HTTPHandler) verifyAccToken(next http.Handler) http.Handler {
 
 		next.ServeHTTP(w, r)
 	})
+}
+
+func (h *HTTPHandler) useMiddleware(r *chi.Mux) {
+	r.Use(h.Cors)
 }

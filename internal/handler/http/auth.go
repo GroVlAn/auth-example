@@ -7,6 +7,7 @@ import (
 	"net/http"
 
 	"github.com/GroVlAn/auth-example/internal/core"
+	jwttoken "github.com/GroVlAn/auth-example/pkg/jwt-token"
 	"github.com/go-chi/chi"
 )
 
@@ -85,7 +86,13 @@ func (h *HTTPHandler) updateAccessToken(w http.ResponseWriter, r *http.Request) 
 	ctx, cancel := context.WithTimeout(r.Context(), h.DefaultTimeout)
 	defer cancel()
 
-	newAccToken, err := h.AuthService.UpdateAccessToken(ctx)
+	refToken, ok := ctx.Value(core.RefreshTokenKey).(jwttoken.JWTDetails)
+	if !ok {
+		h.sendInternalError(w, "context does not store refresh token")
+		return
+	}
+
+	newAccToken, err := h.AuthService.UpdateAccessToken(ctx, refToken)
 	if err != nil {
 		status, res := h.handleError(err)
 
@@ -119,7 +126,13 @@ func (h *HTTPHandler) logout(w http.ResponseWriter, r *http.Request) {
 }
 
 func (h *HTTPHandler) logoutAllDevices(ctx context.Context, w http.ResponseWriter) {
-	err := h.AuthService.LogoutAllDevices(ctx)
+	accToken, ok := ctx.Value(core.AccessTokenKey).(jwttoken.JWTDetails)
+	if !ok {
+		h.sendInternalError(w, "context does not store access token")
+		return
+	}
+
+	err := h.AuthService.LogoutAllDevices(ctx, accToken)
 	if err != nil {
 		status, res := h.handleError(err)
 
@@ -136,7 +149,19 @@ func (h *HTTPHandler) logoutAllDevices(ctx context.Context, w http.ResponseWrite
 }
 
 func (h *HTTPHandler) logoutCurrentDevice(ctx context.Context, w http.ResponseWriter) {
-	err := h.AuthService.Logout(ctx)
+	refToken, ok := ctx.Value(core.RefreshTokenKey).(jwttoken.JWTDetails)
+	if !ok {
+		h.sendInternalError(w, "context does not store refresh token")
+		return
+	}
+
+	accToken, ok := ctx.Value(core.AccessTokenKey).(jwttoken.JWTDetails)
+	if !ok {
+		h.sendInternalError(w, "context does not store access token")
+		return
+	}
+
+	err := h.AuthService.Logout(ctx, refToken, accToken)
 	if err != nil {
 		status, res := h.handleError(err)
 

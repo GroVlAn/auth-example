@@ -49,7 +49,7 @@ type UserDeps struct {
 	HashCost int
 }
 
-type userService struct {
+type UserService struct {
 	userRepo userRepo
 	roleRepo userRoleRepo
 	cache    userCache
@@ -61,8 +61,8 @@ func NewUserService(
 	roleRepo userRoleRepo,
 	cache userCache,
 	deps UserDeps,
-) *userService {
-	return &userService{
+) *UserService {
+	return &UserService{
 		userRepo: userRepo,
 		roleRepo: roleRepo,
 		cache:    cache,
@@ -70,7 +70,7 @@ func NewUserService(
 	}
 }
 
-func (us *userService) CreateUser(ctx context.Context, user core.User) error {
+func (us *UserService) CreateUser(ctx context.Context, user core.User) error {
 	if err := validateUser(user); err != nil {
 		return err
 	}
@@ -116,7 +116,7 @@ func (us *userService) CreateUser(ctx context.Context, user core.User) error {
 	return nil
 }
 
-func (us *userService) User(ctx context.Context, userReq core.UserRequest) (core.User, error) {
+func (us *UserService) User(ctx context.Context, userReq core.UserRequest) (core.User, error) {
 	if err := us.validateUserRequest(userReq); err != nil {
 		return core.User{}, err
 	}
@@ -131,7 +131,7 @@ func (us *userService) User(ctx context.Context, userReq core.UserRequest) (core
 	}
 }
 
-func (us *userService) SetRole(ctx context.Context, userID string, roleName string) error {
+func (us *UserService) SetRole(ctx context.Context, userID string, roleName string) error {
 	role, err := us.roleRepo.Role(ctx, roleName)
 	if err != nil {
 		return fmt.Errorf("getting role by name: %w", err)
@@ -154,7 +154,7 @@ func (us *userService) SetRole(ctx context.Context, userID string, roleName stri
 	return nil
 }
 
-func (us *userService) InactivateUser(ctx context.Context, userReq core.UserRequest) error {
+func (us *UserService) InactivateUser(ctx context.Context, userReq core.UserRequest) error {
 	user, err := us.User(ctx, userReq)
 	if err != nil {
 		return fmt.Errorf("getting user: %w", err)
@@ -169,7 +169,7 @@ func (us *userService) InactivateUser(ctx context.Context, userReq core.UserRequ
 	return nil
 }
 
-func (us *userService) RestoreUser(ctx context.Context, userReq core.UserRequest) error {
+func (us *UserService) RestoreUser(ctx context.Context, userReq core.UserRequest) error {
 	user, err := us.User(ctx, userReq)
 	if err != nil {
 		return fmt.Errorf("getting user: %w", err)
@@ -184,7 +184,7 @@ func (us *userService) RestoreUser(ctx context.Context, userReq core.UserRequest
 	return nil
 }
 
-func (us *userService) BanUser(ctx context.Context, userReq core.UserRequest) error {
+func (us *UserService) BanUser(ctx context.Context, userReq core.UserRequest) error {
 	user, err := us.User(ctx, userReq)
 	if err != nil {
 		return fmt.Errorf("getting user: %w", err)
@@ -199,7 +199,7 @@ func (us *userService) BanUser(ctx context.Context, userReq core.UserRequest) er
 	return nil
 }
 
-func (us *userService) UnbanUser(ctx context.Context, userReq core.UserRequest) error {
+func (us *UserService) UnbanUser(ctx context.Context, userReq core.UserRequest) error {
 	user, err := us.User(ctx, userReq)
 	if err != nil {
 		return fmt.Errorf("getting user: %w", err)
@@ -214,7 +214,7 @@ func (us *userService) UnbanUser(ctx context.Context, userReq core.UserRequest) 
 	return nil
 }
 
-func (us *userService) DeleteInactiveUser(ctx context.Context) error {
+func (us *UserService) DeleteInactiveUser(ctx context.Context) error {
 	if err := us.userRepo.DeleteInactiveUser(ctx); err != nil {
 		return fmt.Errorf("deleting inactive users: %w", err)
 	}
@@ -224,7 +224,7 @@ func (us *userService) DeleteInactiveUser(ctx context.Context) error {
 	return nil
 }
 
-func (us *userService) validateUserRequest(userReq core.UserRequest) *e.ErrValidation {
+func (us *UserService) validateUserRequest(userReq core.UserRequest) *e.ErrValidation {
 	err := e.NewErrValidation("validation user request data error")
 
 	if userReq.ID == "" && userReq.Username == "" && userReq.Email == "" {
@@ -239,7 +239,7 @@ func (us *userService) validateUserRequest(userReq core.UserRequest) *e.ErrValid
 
 }
 
-func (us *userService) getUserByID(ctx context.Context, id string) (core.User, error) {
+func (us *UserService) getUserByID(ctx context.Context, id string) (core.User, error) {
 	if user, ok := us.cache.GetUserByID(id); ok {
 		return user, nil
 	}
@@ -252,7 +252,7 @@ func (us *userService) getUserByID(ctx context.Context, id string) (core.User, e
 	return user, nil
 }
 
-func (us *userService) getUserByUsername(ctx context.Context, username string) (core.User, error) {
+func (us *UserService) getUserByUsername(ctx context.Context, username string) (core.User, error) {
 	if user, ok := us.cache.GetUserByUsername(username); ok {
 		return user, nil
 	}
@@ -265,7 +265,7 @@ func (us *userService) getUserByUsername(ctx context.Context, username string) (
 	return user, nil
 }
 
-func (us *userService) getUserByEmail(ctx context.Context, email string) (core.User, error) {
+func (us *UserService) getUserByEmail(ctx context.Context, email string) (core.User, error) {
 	if user, ok := us.cache.GetUserByEmail(email); ok {
 		return user, nil
 	}

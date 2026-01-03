@@ -31,15 +31,15 @@ type authRepo interface {
 	DeleteAllRefreshTokens(ctx context.Context, userID string) error
 }
 
-type authService struct {
+type AuthService struct {
 	userRepo userRepo
 	authRepo authRepo
 	cache    userCache
 	AuthDeps
 }
 
-func NewAuthService(authRepo authRepo, userRepo userRepo, cache userCache, deps AuthDeps) *authService {
-	return &authService{
+func NewAuthService(authRepo authRepo, userRepo userRepo, cache userCache, deps AuthDeps) *AuthService {
+	return &AuthService{
 		authRepo: authRepo,
 		userRepo: userRepo,
 		cache:    cache,
@@ -47,7 +47,7 @@ func NewAuthService(authRepo authRepo, userRepo userRepo, cache userCache, deps 
 	}
 }
 
-func (as *authService) Authenticate(ctx context.Context, authUser core.AuthUser) (core.RefreshToken, core.AccessToken, error) {
+func (as *AuthService) Authenticate(ctx context.Context, authUser core.AuthUser) (core.RefreshToken, core.AccessToken, error) {
 	user, err := as.user(ctx, authUser)
 	if err != nil {
 		return core.RefreshToken{}, core.AccessToken{}, fmt.Errorf("getting exist user: %w", err)
@@ -76,13 +76,11 @@ func (as *authService) Authenticate(ctx context.Context, authUser core.AuthUser)
 	return refreshToken, accessToken, nil
 }
 
-func (as *authService) UpdateAccessToken(ctx context.Context) (core.AccessToken, error) {
-	tokenDetails := ctx.Value(core.RefreshTokenKey).(jwttoken.JWTDetails)
-
-	newToken, err := as.createAccessToken(tokenDetails.RefreshTokenID,
+func (as *AuthService) UpdateAccessToken(ctx context.Context, refToken jwttoken.JWTDetails) (core.AccessToken, error) {
+	newToken, err := as.createAccessToken(refToken.RefreshTokenID,
 		core.User{
-			ID:       tokenDetails.UserID,
-			Username: tokenDetails.Login,
+			ID:       refToken.UserID,
+			Username: refToken.Login,
 		})
 	if err != nil {
 		return core.AccessToken{}, fmt.Errorf("creating access token: %w", err)
@@ -95,7 +93,7 @@ func (as *authService) UpdateAccessToken(ctx context.Context) (core.AccessToken,
 	return newToken, nil
 }
 
-func (as *authService) VerifyAccessToken(ctx context.Context, accToken string) (jwttoken.JWTDetails, error) {
+func (as *AuthService) VerifyAccessToken(ctx context.Context, accToken string) (jwttoken.JWTDetails, error) {
 	if err := as.checkExistAccessToken(ctx, accToken); err != nil {
 		return jwttoken.JWTDetails{}, e.NewErrUnauthorized(
 			fmt.Errorf("cheking access token: %w", err),
@@ -115,7 +113,7 @@ func (as *authService) VerifyAccessToken(ctx context.Context, accToken string) (
 	return tokenDetails, nil
 }
 
-func (as *authService) VerifyRefreshToken(ctx context.Context, rfToken string) (jwttoken.JWTDetails, error) {
+func (as *AuthService) VerifyRefreshToken(ctx context.Context, rfToken string) (jwttoken.JWTDetails, error) {
 	_, err := as.checkExistRefreshToken(ctx, rfToken)
 	if err != nil {
 		return jwttoken.JWTDetails{}, e.NewErrUnauthorized(
@@ -136,24 +134,19 @@ func (as *authService) VerifyRefreshToken(ctx context.Context, rfToken string) (
 	return tokenDetails, nil
 }
 
-func (as *authService) Logout(ctx context.Context) error {
-	refreshToken := ctx.Value(core.RefreshTokenKey).(jwttoken.JWTDetails)
-	accessToken := ctx.Value(core.AccessTokenKey).(jwttoken.JWTDetails)
-
-	if err := as.authRepo.DeleteRefreshToken(ctx, refreshToken.Token); err != nil {
+func (as *AuthService) Logout(ctx context.Context, refToken, accToken jwttoken.JWTDetails) error {
+	if err := as.authRepo.DeleteRefreshToken(ctx, refToken.Token); err != nil {
 		return fmt.Errorf("deleting refresh token: %w", err)
 	}
 
-	if err := as.authRepo.DeleteAccessToken(ctx, accessToken.Token); err != nil {
+	if err := as.authRepo.DeleteAccessToken(ctx, accToken.Token); err != nil {
 		return fmt.Errorf("deleting access token: %w", err)
 	}
 
 	return nil
 }
 
-func (as *authService) LogoutAllDevices(ctx context.Context) error {
-	accToken := ctx.Value(core.AccessTokenKey).(jwttoken.JWTDetails)
-
+func (as *AuthService) LogoutAllDevices(ctx context.Context, accToken jwttoken.JWTDetails) error {
 	tokenDetails, err := jwttoken.ParseToken(as.SecretKey, accToken.Token)
 	if err != nil {
 		return e.NewErrUnauthorized(err, "invalid access token")
@@ -170,7 +163,7 @@ func (as *authService) LogoutAllDevices(ctx context.Context) error {
 	return nil
 }
 
-func (as *authService) user(ctx context.Context, authUser core.AuthUser) (core.User, error) {
+func (as *AuthService) user(ctx context.Context, authUser core.AuthUser) (core.User, error) {
 	switch {
 	case len(authUser.Username) > 0:
 		return as.getUserByUsername(ctx, authUser.Username)
@@ -184,7 +177,7 @@ func (as *authService) user(ctx context.Context, authUser core.AuthUser) (core.U
 	}
 }
 
-func (as *authService) getUserByUsername(ctx context.Context, username string) (core.User, error) {
+func (as *AuthService) getUserByUsername(ctx context.Context, username string) (core.User, error) {
 	if user, ok := as.cache.GetUserByUsername(username); ok {
 		return user, nil
 	}
@@ -197,7 +190,7 @@ func (as *authService) getUserByUsername(ctx context.Context, username string) (
 	return user, nil
 }
 
-func (as *authService) getUserByEmail(ctx context.Context, email string) (core.User, error) {
+func (as *AuthService) getUserByEmail(ctx context.Context, email string) (core.User, error) {
 	if user, ok := as.cache.GetUserByEmail(email); ok {
 		return user, nil
 	}
@@ -210,7 +203,7 @@ func (as *authService) getUserByEmail(ctx context.Context, email string) (core.U
 	return user, nil
 }
 
-func (as *authService) createRefreshToken(user core.User) (core.RefreshToken, error) {
+func (as *AuthService) createRefreshToken(user core.User) (core.RefreshToken, error) {
 	refreshToken := core.RefreshToken{}
 	refreshToken.StartTTL = time.Now()
 	refreshToken.EndTTL = refreshToken.StartTTL.Add(as.TokenRefreshEndTTL)
@@ -236,7 +229,7 @@ func (as *authService) createRefreshToken(user core.User) (core.RefreshToken, er
 	return refreshToken, nil
 }
 
-func (as *authService) createAccessToken(rfID string, user core.User) (core.AccessToken, error) {
+func (as *AuthService) createAccessToken(rfID string, user core.User) (core.AccessToken, error) {
 	accessToken := core.AccessToken{}
 	accessToken.StartTTL = time.Now()
 	accessToken.EndTTL = accessToken.StartTTL.Add(as.TokenAccessEndTTL)
@@ -263,7 +256,7 @@ func (as *authService) createAccessToken(rfID string, user core.User) (core.Acce
 	return accessToken, nil
 }
 
-func (as *authService) verifyPassword(password, passwordHash string) error {
+func (as *AuthService) verifyPassword(password, passwordHash string) error {
 	err := bcrypt.CompareHashAndPassword([]byte(passwordHash), []byte(password))
 	if errors.Is(err, bcrypt.ErrMismatchedHashAndPassword) {
 		return e.NewErrUnauthorized(
@@ -278,7 +271,7 @@ func (as *authService) verifyPassword(password, passwordHash string) error {
 	return nil
 }
 
-func (as *authService) checkExistAccessToken(ctx context.Context, token string) error {
+func (as *AuthService) checkExistAccessToken(ctx context.Context, token string) error {
 	if _, err := as.authRepo.AccessToken(ctx, token); err != nil {
 		return e.NewErrUnauthorized(
 			fmt.Errorf("checking exist access token: %w", err),
@@ -289,7 +282,7 @@ func (as *authService) checkExistAccessToken(ctx context.Context, token string) 
 	return nil
 }
 
-func (as *authService) checkExistRefreshToken(ctx context.Context, token string) (core.RefreshToken, error) {
+func (as *AuthService) checkExistRefreshToken(ctx context.Context, token string) (core.RefreshToken, error) {
 	rfToken, err := as.authRepo.RefreshToken(ctx, token)
 	if err != nil {
 		return core.RefreshToken{}, e.NewErrUnauthorized(
@@ -301,7 +294,7 @@ func (as *authService) checkExistRefreshToken(ctx context.Context, token string)
 	return rfToken, nil
 }
 
-func (as *authService) checkExpiredAccessToken(ctx context.Context, token string, tokenDetails jwttoken.JWTDetails) error {
+func (as *AuthService) checkExpiredAccessToken(ctx context.Context, token string, tokenDetails jwttoken.JWTDetails) error {
 	exp := time.Unix(int64(tokenDetails.EXP), 0)
 	now := time.Now()
 
@@ -312,7 +305,7 @@ func (as *authService) checkExpiredAccessToken(ctx context.Context, token string
 	return nil
 }
 
-func (as *authService) checkExpiredRefreshToken(ctx context.Context, token string, tokenDetails jwttoken.JWTDetails) error {
+func (as *AuthService) checkExpiredRefreshToken(ctx context.Context, token string, tokenDetails jwttoken.JWTDetails) error {
 	exp := time.Unix(int64(tokenDetails.EXP), 0)
 	now := time.Now()
 
@@ -323,7 +316,7 @@ func (as *authService) checkExpiredRefreshToken(ctx context.Context, token strin
 	return nil
 }
 
-func (as *authService) deleteRefreshTokenWithError(ctx context.Context, token string) error {
+func (as *AuthService) deleteRefreshTokenWithError(ctx context.Context, token string) error {
 	if err := as.authRepo.DeleteRefreshToken(ctx, token); err != nil {
 		return e.NewErrInternal(fmt.Errorf("deleting refresh token: %w", err))
 	}
@@ -334,7 +327,7 @@ func (as *authService) deleteRefreshTokenWithError(ctx context.Context, token st
 	)
 }
 
-func (as *authService) deleteAccessTokenWithError(ctx context.Context, token string) error {
+func (as *AuthService) deleteAccessTokenWithError(ctx context.Context, token string) error {
 	if err := as.authRepo.DeleteAccessToken(ctx, token); err != nil {
 		return e.NewErrInternal(fmt.Errorf("deleting access token: %w", err))
 	}

@@ -2,27 +2,23 @@ package grpc_handler
 
 import (
 	"context"
-	"errors"
 	"time"
 
 	"github.com/GroVlAn/auth-example/api/auth"
 	"github.com/GroVlAn/auth-example/api/role"
 	"github.com/GroVlAn/auth-example/api/user"
 	"github.com/GroVlAn/auth-example/internal/core"
-	"github.com/GroVlAn/auth-example/internal/core/e"
 	jwttoken "github.com/GroVlAn/auth-example/pkg/jwt-token"
 	"github.com/rs/zerolog"
-	"google.golang.org/grpc/codes"
-	"google.golang.org/grpc/status"
 )
 
 type authenticator interface {
 	Authenticate(ctx context.Context, authUser core.AuthUser) (core.RefreshToken, core.AccessToken, error)
-	UpdateAccessToken(ctx context.Context) (core.AccessToken, error)
-	VerifyRefreshToken(ctx context.Context, rfToken string) (jwttoken.JWTDetails, error)
+	UpdateAccessToken(ctx context.Context, refToken jwttoken.JWTDetails) (core.AccessToken, error)
 	VerifyAccessToken(ctx context.Context, accToken string) (jwttoken.JWTDetails, error)
-	Logout(ctx context.Context) error
-	LogoutAllDevices(ctx context.Context) error
+	VerifyRefreshToken(ctx context.Context, rfToken string) (jwttoken.JWTDetails, error)
+	Logout(ctx context.Context, refToken, accToken jwttoken.JWTDetails) error
+	LogoutAllDevices(ctx context.Context, accToken jwttoken.JWTDetails) error
 }
 
 type userService interface {
@@ -39,8 +35,8 @@ type roleService interface {
 	CreateRole(ctx context.Context, role core.Role) error
 	CreatePermission(ctx context.Context, permission core.Permission, roleName string) error
 	Permissions(ctx context.Context, roleName string) ([]core.Permission, error)
+	VerifyPermission(ctx context.Context, accToken jwttoken.JWTDetails, permission string) (bool, error)
 }
-
 type Deps struct {
 	DefaultTimeout time.Duration
 }
@@ -65,51 +61,5 @@ func New(l zerolog.Logger, services Services, deps Deps) *GRPCHandler {
 		l:        l,
 		Services: services,
 		Deps:     deps,
-	}
-}
-
-func (h *GRPCHandler) handleError(err error) error {
-	var errValidation *e.ErrValidation
-	var errWrapper *e.ErrWrapper
-
-	if errors.As(err, &errValidation) {
-		field, reason, ok := errValidation.FirstError()
-
-		if ok {
-			h.l.Error().Err(errWrapper.Unwrap()).Msgf("validation error occurred: field: %s, reason: %s", field, reason)
-
-			return status.Errorf(codes.InvalidArgument, "field: %s, error: %s", field, reason)
-		}
-	}
-
-	if errors.As(err, &errWrapper) {
-		return h.handleErrorWrapper(errWrapper)
-	}
-
-	return status.Error(codes.Internal, "internal server error")
-}
-
-func (h *GRPCHandler) handleErrorWrapper(errWrapper *e.ErrWrapper) error {
-	switch errWrapper.ErrorType() {
-	case e.ErrorTypeNotFound:
-		h.l.Error().Err(errWrapper.Unwrap()).Msg("error not found occurred")
-
-		return status.Error(codes.NotFound, errWrapper.Error())
-	case e.ErrorTypeConflict:
-		h.l.Error().Err(errWrapper.Unwrap()).Msg("error conflict occurred")
-
-		return status.Error(codes.AlreadyExists, errWrapper.Error())
-	case e.ErrorTypeUnauthorized:
-		h.l.Error().Err(errWrapper.Unwrap()).Msg("error unauthorized occurred")
-
-		return status.Error(codes.Unauthenticated, errWrapper.Error())
-	case e.ErrorTypeInternal:
-		h.l.Error().Err(errWrapper.Unwrap()).Msg("error internal occurred")
-
-		return status.Error(codes.Internal, errWrapper.Error())
-	default:
-		h.l.Error().Err(errWrapper.Unwrap()).Msg("error internal(not wrapped) occurred")
-
-		return status.Error(codes.Internal, errWrapper.Error())
 	}
 }
