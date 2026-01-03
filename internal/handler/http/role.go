@@ -17,9 +17,9 @@ const (
 )
 
 func (h *HTTPHandler) roleRoute(r chi.Router) {
-	r.Post(createRoleEndpoint, h.createRole)
-	r.Post(createPermissionEndpoint, h.createPermission)
-	r.Get(permissionsEndpoint, h.permissions)
+	r.With(h.verifyPermission("admin_create")).Post(createRoleEndpoint, h.createRole)
+	r.With(h.verifyPermission("admin_create")).Post(createPermissionEndpoint, h.createPermission)
+	r.With(h.verifyPermission("user_watch")).Get(permissionsEndpoint, h.permissions)
 
 }
 

@@ -4,7 +4,7 @@
         "description": "administrator",
         "permissions": [
             {
-                "name": "watch",
+                "name": "user_watch",
                 "description": "can only watch content"
             },
             {
@@ -18,6 +18,10 @@
             {
                 "name": "delete",
                 "description": "can delete records"
+            },
+            {
+                "name": "logout",
+                "description": "can logout"
             },
             {
                 "name": "admin_create",
@@ -38,7 +42,7 @@
         "description": "registered user",
         "permissions": [
             {
-                "name": "watch",
+                "name": "user_watch",
                 "description": "can watch content"
             },
             {
@@ -48,6 +52,10 @@
             {
                 "name": "update",
                 "description": "can update records"
+            },
+            {
+                "name": "logout",
+                "description": "can logout"
             }
         ]
     },

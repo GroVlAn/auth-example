@@ -23,14 +23,20 @@ const (
 func (h *HTTPHandler) authRoute(r chi.Router) {
 	r.With().Post(authEndpoint, h.auth)
 
-	r.With(h.verifyAccToken).Post(verifyEndpoint, h.verifyAccessToken)
+	r.With(h.verifyAccToken).
+		With(h.verifyPermission("user_watch")).
+		Post(verifyEndpoint, h.verifyAccessToken)
 
-	r.With(h.verifyRefToken).Patch(updateEndpoint, h.updateAccessToken)
+	r.With(h.verifyRefToken).
+		With(h.verifyPermission("update")).
+		Patch(updateEndpoint, h.updateAccessToken)
 
 	r.With(
 		h.verifyRefToken,
 		h.verifyAccToken,
-	).Delete(logout, h.logout)
+	).
+		With(h.verifyPermission("logout")).
+		Delete(logout, h.logout)
 }
 
 func (h *HTTPHandler) auth(w http.ResponseWriter, r *http.Request) {

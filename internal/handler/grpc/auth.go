@@ -36,6 +36,10 @@ func (h *GRPCHandler) Login(ctx context.Context, req *auth.AuthUser) (*auth.Toke
 }
 
 func (h *GRPCHandler) VerifyAccessToken(ctx context.Context, req *auth.AccessToken) (*auth.Success, error) {
+	if err := h.verifyPermission(ctx, "update"); err != nil {
+		return nil, err
+	}
+
 	ctx, cancel := context.WithTimeout(ctx, h.DefaultTimeout)
 	defer cancel()
 
@@ -49,6 +53,10 @@ func (h *GRPCHandler) VerifyAccessToken(ctx context.Context, req *auth.AccessTok
 }
 
 func (h *GRPCHandler) UpdateAccessToken(ctx context.Context, req *auth.RefreshToken) (*auth.AccessToken, error) {
+	if err := h.verifyPermission(ctx, "update"); err != nil {
+		return nil, err
+	}
+
 	ctx = context.WithValue(ctx, core.RefreshTokenKey, req.Token)
 
 	ctx, cancel := context.WithTimeout(ctx, h.DefaultTimeout)
@@ -70,6 +78,10 @@ func (h *GRPCHandler) UpdateAccessToken(ctx context.Context, req *auth.RefreshTo
 }
 
 func (h *GRPCHandler) Logout(ctx context.Context, req *auth.AccessToken) (*auth.Success, error) {
+	if err := h.verifyPermission(ctx, "logout"); err != nil {
+		return nil, err
+	}
+
 	ctx = context.WithValue(ctx, core.AccessTokenKey, req.Token)
 
 	ctx, cancel := context.WithTimeout(ctx, h.DefaultTimeout)
@@ -95,6 +107,10 @@ func (h *GRPCHandler) Logout(ctx context.Context, req *auth.AccessToken) (*auth.
 }
 
 func (h *GRPCHandler) LogoutAllDevices(ctx context.Context, req *auth.AccessToken) (*auth.Success, error) {
+	if err := h.verifyPermission(ctx, "logout"); err != nil {
+		return nil, err
+	}
+
 	ctx = context.WithValue(ctx, core.AccessTokenKey, req.Token)
 
 	ctx, cancel := context.WithTimeout(ctx, h.DefaultTimeout)

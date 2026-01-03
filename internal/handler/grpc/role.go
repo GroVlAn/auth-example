@@ -8,6 +8,10 @@ import (
 )
 
 func (h *GRPCHandler) CreateRole(ctx context.Context, req *role.Role) (*role.Success, error) {
+	if err := h.verifyPermission(ctx, "admin_create"); err != nil {
+		return nil, err
+	}
+
 	r := core.Role{
 		Name:        req.Name,
 		Description: req.Description,
@@ -26,6 +30,10 @@ func (h *GRPCHandler) CreateRole(ctx context.Context, req *role.Role) (*role.Suc
 }
 
 func (h *GRPCHandler) CreatePermission(ctx context.Context, req *role.PermissionRequest) (*role.Success, error) {
+	if err := h.verifyPermission(ctx, "admin_create"); err != nil {
+		return nil, err
+	}
+
 	perm := core.Permission{
 		Name:        req.Permission.Name,
 		Description: req.Permission.Description,
@@ -44,6 +52,10 @@ func (h *GRPCHandler) CreatePermission(ctx context.Context, req *role.Permission
 }
 
 func (h *GRPCHandler) GetPermissions(ctx context.Context, req *role.PermissionsRequest) (*role.Permissions, error) {
+	if err := h.verifyPermission(ctx, "user_watch"); err != nil {
+		return nil, err
+	}
+
 	ctx, cancel := context.WithTimeout(ctx, h.DefaultTimeout)
 	defer cancel()
 

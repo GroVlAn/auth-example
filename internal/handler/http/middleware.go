@@ -7,6 +7,7 @@ import (
 
 	"github.com/GroVlAn/auth-example/internal/core"
 	"github.com/GroVlAn/auth-example/internal/core/e"
+	jwttoken "github.com/GroVlAn/auth-example/pkg/jwt-token"
 	"github.com/go-chi/chi"
 )
 
@@ -83,6 +84,43 @@ func (h *HTTPHandler) verifyAccToken(next http.Handler) http.Handler {
 
 		next.ServeHTTP(w, r)
 	})
+}
+
+func (h *HTTPHandler) verifyPermission(permission string) func(next http.Handler) http.Handler {
+	return func(next http.Handler) http.Handler {
+		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+			ctx, cancel := context.WithTimeout(r.Context(), h.DefaultTimeout)
+			defer cancel()
+
+			accToken, ok := ctx.Value(core.AccessTokenKey).(jwttoken.JWTDetails)
+			if !ok {
+				h.sendInternalError(w, "context does not store access token")
+				return
+			}
+
+			ok, err := h.RoleService.VerifyPermission(ctx, accToken, permission)
+			if err != nil {
+				status, res := h.handleError(err)
+
+				h.sendResponse(w, res, status)
+				return
+			}
+
+			if !ok {
+				res := core.Response{
+					Error: &core.ErrorResponse{
+						Code: http.StatusForbidden,
+						Text: "access to method forbidden",
+					},
+				}
+
+				h.sendResponse(w, res, http.StatusForbidden)
+				return
+			}
+
+			next.ServeHTTP(w, r)
+		})
+	}
 }
 
 func (h *HTTPHandler) useMiddleware(r *chi.Mux) {

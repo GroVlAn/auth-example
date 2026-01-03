@@ -30,6 +30,10 @@ func (h *GRPCHandler) CreateUser(ctx context.Context, req *user.User) (*user.Suc
 }
 
 func (h *GRPCHandler) GetUser(ctx context.Context, req *user.UserRequest) (*user.User, error) {
+	if err := h.verifyPermission(ctx, "user_watch"); err != nil {
+		return nil, err
+	}
+
 	userReq := core.UserRequest{
 		ID:       req.ID,
 		Username: req.Username,
@@ -54,7 +58,11 @@ func (h *GRPCHandler) GetUser(ctx context.Context, req *user.UserRequest) (*user
 	}, nil
 }
 
-func (h *GRPCHandler) SerRole(ctx context.Context, req *user.RoleRequest) (*user.Success, error) {
+func (h *GRPCHandler) SetRole(ctx context.Context, req *user.RoleRequest) (*user.Success, error) {
+	if err := h.verifyPermission(ctx, "admin_update"); err != nil {
+		return nil, err
+	}
+
 	ctx, cancel := context.WithTimeout(ctx, h.DefaultTimeout)
 	defer cancel()
 
@@ -68,18 +76,34 @@ func (h *GRPCHandler) SerRole(ctx context.Context, req *user.RoleRequest) (*user
 }
 
 func (h *GRPCHandler) InactivateUser(ctx context.Context, req *user.UserRequest) (*user.Success, error) {
+	if err := h.verifyPermission(ctx, "admin_update"); err != nil {
+		return nil, err
+	}
+
 	return h.changeUserStatus(ctx, req, h.UserService.InactivateUser)
 }
 
 func (h *GRPCHandler) RestoreUser(ctx context.Context, req *user.UserRequest) (*user.Success, error) {
+	if err := h.verifyPermission(ctx, "admin_update"); err != nil {
+		return nil, err
+	}
+
 	return h.changeUserStatus(ctx, req, h.UserService.RestoreUser)
 }
 
 func (h *GRPCHandler) BanUser(ctx context.Context, req *user.UserRequest) (*user.Success, error) {
+	if err := h.verifyPermission(ctx, "admin_update"); err != nil {
+		return nil, err
+	}
+
 	return h.changeUserStatus(ctx, req, h.UserService.BanUser)
 }
 
 func (h *GRPCHandler) UnbanUser(ctx context.Context, req *user.UserRequest) (*user.Success, error) {
+	if err := h.verifyPermission(ctx, "admin_update"); err != nil {
+		return nil, err
+	}
+
 	return h.changeUserStatus(ctx, req, h.UserService.UnbanUser)
 }
 

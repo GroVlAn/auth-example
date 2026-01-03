@@ -26,21 +26,27 @@ func (h *HTTPHandler) userRoute(r chi.Router) {
 	r.Post(registerEndpoint, h.register)
 
 	r.With(h.verifyAccToken).
+		With(h.verifyPermission("update")).
 		Get(userEndpoint, h.user)
 
 	r.With(h.verifyAccToken).
+		With(h.verifyPermission("admin_update")).
 		Patch(setRoleEndpoint, h.setRole)
 
 	r.With(h.verifyAccToken).
+		With(h.verifyPermission("update")).
 		Patch(inactivateUserEndpoint, h.inactivateUser)
 
 	r.With(h.verifyAccToken).
+		With(h.verifyPermission("admin_update")).
 		Patch(restoreUserEndpoint, h.restoreUser)
 
 	r.With(h.verifyAccToken).
+		With(h.verifyPermission("admin_update")).
 		Patch(banUserEndpoint, h.banUser)
 
 	r.With(h.verifyAccToken).
+		With(h.verifyPermission("admin_update")).
 		Patch(unbanUserEndpoint, h.unbanUser)
 }
 
